@@ -1,0 +1,42 @@
+1. complex:
+
+((λx.(λy.(x y))) (λx.x)) 1 --> 1
+
+{"app": {"fun": {"app": {"fun": {"lam": {"var": "x", "body": {"lam": {"var": "y", "body": {"app": {"fun": {"var": "x"}, "arg": {"var": "y"}}}}}}}, "arg": {"lam": {"var": "x", "body": {"var": "x"}}}}}, "arg": {"lit": 1}}}
+
+
+2. lit:
+
+{"lit": 1}
+
+
+3. var:
+
+{"var": "x"}
+
+
+4. lam:
+
+λx.42   --> λx.42
+
+{"lam": {"var": "x", "body": {"lit": 42}}}
+
+
+5. app
+
+(λx.x) 42   --> 42
+
+{"app": {"fun": {"lam": {"var": "x", "body": {"var": "x"}}}, "arg": {"lit": 42}}}
+
+6. add
+
+5 + 3 --> 8
+
+{"add": {"left": {"lit": 5}, "right": {"lit": 3}}}
+
+
+7. complex (with addition):
+
+((λx.(λy.(x + y)) 1) 2)  --> 3
+
+{"app": {"fun": {"app": {"fun": {"lam": {"var": "x", "body": {"lam": {"var": "y", "body": {"add": {"left": {"var": "x"}, "right": {"var": "y"}}}}}}}, "arg": {"lit": 1}}}, "arg": {"lit": 2}}}                                         
