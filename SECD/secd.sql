@@ -1,11 +1,15 @@
+\i definitions.sql
+
+DROP TYPE IF EXISTS machine_state;
+CREATE TYPE machine_state AS (s stack, e env, c control, d dump, finished boolean);
+
 -- evaluate a lambda term t using an SECD machine
-DROP FUNCTION IF EXISTS evaluate;
 CREATE FUNCTION evaluate(t term) RETURNS val AS
 $$
   WITH RECURSIVE machine_states(s,e,c,d,finished) AS (
   
     SELECT array[]::stack, 
-           '{}'::env, 
+           empty_env(), 
            array[row(t, null)]::control, 
            array[]::dump, 
            false
@@ -31,7 +35,7 @@ $$
         
       --2. Return from function call
       SELECT (ms.s || d.s)::stack, 
-             d.e, 
+             replace_env(ms.e, d.e), 
              d.c, 
              ms.d[2:]::dump, 
              false
@@ -56,7 +60,7 @@ $$
         UNION ALL
         
       --4. Push variable value onto stack
-      SELECT (array[lookup(ms.e, t.var)] || ms.s)::stack, 
+      SELECT (array[lookup(ms.e,t.var)] || ms.s)::stack, 
              ms.e, 
              ms.c[2:]::control, 
              ms.d, 
@@ -69,7 +73,7 @@ $$
         UNION ALL
         
       --5. Push lambda abstraction onto stack as closure
-      SELECT (array[row(row(t.var, t.body, ms.e),null)]::stack || ms.s)::stack, 
+      SELECT (array[row(row(t.var, t.body, copy_env(ms.e)),null)]::stack || ms.s)::stack, 
              ms.e, 
              ms.c[2:]::control, 
              ms.d, 
@@ -139,7 +143,7 @@ $$
     ) AS step(s,e,c,d,finished)  
   )
   SELECT s[1]
-  FROM machine_states AS _(s,_,_,_,finished)
+  FROM machine_states AS ms(s,_,_,_,finished)
   WHERE finished
 $$ LANGUAGE SQL IMMUTABLE;
 
@@ -148,5 +152,5 @@ CREATE TABLE terms (t term);
 
 \copy terms FROM '../term_input.json';
 
-SELECT (evaluate(t)).*
-FROM terms AS _(t);
+SELECT r.*
+FROM terms AS _(t), evaluate(t) AS r;
