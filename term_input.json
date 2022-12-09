@@ -1,1 +1,1 @@
-{"lam": {"var": "x", "body": {"lit": 42}}}
+{"app": {"fun": {"lam": {"app": {"fun": {"i": 0}, "arg": {"i": 0}}}}, "arg": {"lam": {"i": 0}}}}
