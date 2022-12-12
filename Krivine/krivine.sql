@@ -50,6 +50,7 @@ $$
       FROM (SELECT ms.s[1]) AS _(closure)
       WHERE NOT ms.finished 
         AND t.lam IS NOT NULL
+        AND cardinality(ms.s) > 0
       
         UNION ALL
         
