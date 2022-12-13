@@ -35,6 +35,11 @@ $$
         WHERE ms.c[1].t = t.id
       ),
 
+      -- compute next machine state
+      -- r: the rule applied, according to which the environment 
+      --    will be modified
+      -- id, name, val (optional): indicate (for rule 7) that a new 
+      --   environment has to be created by extending id with (name -> val)
       step(r,s,e,c,d,id,name,val) AS (
         --1. Terminate computation
         SELECT '1'::rule,
@@ -56,7 +61,7 @@ $$
               d.e, 
               d.c, 
               ms.d[2:]::dump, 
-              ms.e,null::var,null
+              null,null,null
         FROM machine AS ms,
         LATERAL (SELECT ms.d[1].*) AS d(s,e,c)
         WHERE cardinality(ms.s) = 1 
@@ -70,7 +75,7 @@ $$
               ms.e, 
               ms.c[2:]::control, 
               ms.d, 
-              null,null::var,null
+              null,null,null
         FROM machine AS ms,
              term AS t
         WHERE t.lit IS NOT NULL
@@ -86,7 +91,7 @@ $$
                 ms.e, 
                 ms.c[2:]::control, 
                 ms.d, 
-                null,null::var,null
+                null,null,null
         FROM machine AS ms,
              term AS t
         WHERE t.var IS NOT NULL
@@ -99,7 +104,7 @@ $$
               ms.e, 
               ms.c[2:]::control, 
               ms.d, 
-              null, null::var,null
+              null, null,null
         FROM machine AS ms,
              term AS t,
         LATERAL (SELECT (t.lam).*) AS lam(var, body)
@@ -113,7 +118,7 @@ $$
               ms.e, 
               (array[row(app.arg,null), row(app.fun,null), row(null, 'apply')]::control || ms.c[2:])::control, 
               ms.d, 
-              null,null::var,null
+              null,null,null
         FROM machine AS ms,
              term AS t,
         LATERAL (SELECT (t.app).*) AS app(fun, arg)
@@ -134,6 +139,8 @@ $$
         LATERAL (SELECT ms.c[1].*) AS c(_,p)
         WHERE c.p = 'apply'
       ),
+
+      --update the environments according to the rule applied by 'step'
       new_envs(id,name,val) AS (
         -- use old env
         SELECT e.*
@@ -183,6 +190,7 @@ CREATE TABLE input_terms (t jsonb);
 SELECT r.*
 FROM input_terms AS _(t), load_term(t) AS __(id), evaluate(id) AS r;
 
+/*
 ----------------------------------------------------------------------------------
 --test
 
@@ -193,3 +201,4 @@ INSERT INTO test VALUES (row(array[]::stack,
            array[row(1, null)]::control, 
            array[]::dump)::machine_state,
            null::env_entry);
+*/
