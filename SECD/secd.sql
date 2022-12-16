@@ -3,6 +3,10 @@
 -- evaluate a lambda term t using an SECD machine
 CREATE OR REPLACE FUNCTION evaluate(t term) RETURNS val AS
 $$
+-- The recursive CTE r has the following columns:
+-- finished: indicates wheter the computation is finished
+-- ms: a single (!) machine state: Only one row per iteration has ms != null
+-- e: environment entries (an arbitrary number of rows)
   WITH RECURSIVE r(finished, ms, e) AS (
   
     SELECT 
@@ -36,7 +40,7 @@ $$
       ),
 
       -- compute next machine state
-      -- r: the rule applied, according to which the environment 
+      -- r: the applied rule, according to which the environment 
       --    will be modified
       -- id, name, val (optional): indicate (for rule 7) that a new 
       --   environment has to be created by extending id with (name -> val)
@@ -149,13 +153,14 @@ $$
         
           UNION ALL
 
-         -- copy old env and extend it
+         -- add new binding to new env
         SELECT s.e, s.name, s.val
         FROM step AS s
         WHERE s.r = '7'
 
           UNION ALL
         
+        -- create copy of old env, omitting overwritte variable
         SELECT s.e, e.name, e.val
         FROM step AS s, environment AS e
         WHERE s.r = '7'
