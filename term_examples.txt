@@ -41,8 +41,16 @@
 
 {"app": {"fun": {"app": {"fun": {"lam": {"var": "x", "body": {"lam": {"var": "y", "body": {"add": {"left": {"var": "x"}, "right": {"var": "y"}}}}}}}, "arg": {"lit": 1}}}, "arg": {"lit": 2}}}      
 
-8. De Bruijn:
+8.1 De Bruijn:
 
 (λ 0 0) (λ 0)  --> λ 0 
 
-{"app": {"fun": {"lam": {"app": {"fun": {"i": 0}, "arg": {"i": 0}}}}, "arg": {"lam": {"i": 0}}}}                             
+{"app": {"fun": {"lam": {"app": {"fun": {"i": 0}, "arg": {"i": 0}}}}, "arg": {"lam": {"i": 0}}}}                           
+
+
+8.2 De Bruijn:
+
+((λx.λy.x) (λx.λy.x)) (λx.x) --> (λx.λy.x)
+((λ (λ 1 1)) (λ (λ 1 1))) (λ 0) -> (λ (λ 1 1))
+
+{"app": {"fun": {"app": {"fun": {"lam": {"lam": {"i": 1}}}, "arg": {"lam": {"lam": {"i": 1}}}}}, "arg": {"lam": {"i": 0}}}}
