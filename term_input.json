@@ -1,1 +1,1 @@
-{"app": {"fun": {"app": {"fun": {"lam": {"var": "x", "body": {"lam": {"var": "y", "body": {"app": {"fun": {"var": "x"}, "arg": {"var": "y"}}}}}}}, "arg": {"lam": {"var": "x", "body": {"var": "x"}}}}}, "arg": {"lit": 1}}}
+{"app": {"fun": {"app": {"fun": {"lam": {"lam": {"i": 1}}}, "arg": {"lam": {"lam": {"i": 1}}}}}, "arg": {"lam": {"i": 0}}}}
