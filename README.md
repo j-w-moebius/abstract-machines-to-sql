@@ -7,6 +7,6 @@ So far, includes:
   - Vanilla PostgreSQL implentations (on branch `main`):
     - SECD machine
     - Krivine machine
-  - Implentations with relying on the `hashtables` extension (on branch `hashtables`):
+  - Implentations relying on the `hashtables` extension (on branch `hashtables`):
     - SECD machine
     - Krivine machine
