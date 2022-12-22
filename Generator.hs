@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-{-# HLINT ignore "Use lambda-case" #-}
 import Data.Char
 import Data.List
 import qualified Data.Lambda as L
@@ -14,18 +12,6 @@ sampler = filterClosedIO (\t -> case t of
                             (L.App _ _) -> True
                             _           -> False) 
                          plainNatSampler 10 100
-
-term1 :: L.Lambda
-term1 = L.App (L.Abs (L.App (L.Var L.Z) (L.Var L.Z))) (L.Abs (L.Var L.Z))
-
-term2 :: L.Lambda
-term2 = L.Abs (L.Abs (L.Abs (L.App (L.App (L.Var (L.S (L.S L.Z))) (L.Var L.Z)) (L.App (L.Var (L.S L.Z)) (L.Var L.Z)))))
-
-term3 :: L.Lambda
-term3 = L.Abs (L.App (L.Abs (L.App (L.Var L.Z) (L.Abs (L.Var L.Z)))) (L.Abs (L.App (L.Var (L.S L.Z)) (L.Var L.Z))))
-
-term4 :: L.Lambda
-term4 = L.App (L.App (L.Abs (L.Abs (L.Var (L.S L.Z)))) (L.Abs (L.Abs (L.Var (L.S L.Z))))) (L.Abs (L.Var L.Z))
 
 data LambdaVar = Var String
                | Abs String LambdaVar
