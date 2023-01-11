@@ -190,10 +190,12 @@ $$ LANGUAGE SQL VOLATILE;
 DROP TABLE IF EXISTS input_terms;
 CREATE TABLE input_terms (t jsonb);
 
-\copy input_terms FROM '../term_input.json';
+\copy input_terms FROM '../secd_terms.json';
 
-SELECT r.*
-FROM input_terms AS _(t), load_term(t) AS __(id), evaluate(id) AS r;
+INSERT INTO root_terms(id) (
+  SELECT id
+  FROM input_terms AS _(t), load_term(t) AS __(id)
+);
 
 /*
 ----------------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 DROP TYPE IF EXISTS term,env,closure,stack,lam,app,machine_state,env_entry,rule CASCADE;
-DROP TABLE IF EXISTS terms;
+DROP TABLE IF EXISTS terms, root_terms;
 
 CREATE DOMAIN term AS integer;
 CREATE DOMAIN env AS integer;
@@ -25,10 +25,11 @@ CREATE TYPE app AS (fun term, arg term);
 --      | Lam Term        (Lambda with body)
 --      | App Term Term   (Application with fun and arg)
 
-CREATE TABLE terms (id integer GENERATED ALWAYS AS IDENTITY, i int, lam term, app app);
+CREATE TABLE terms (id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY, i int, lam term, app app);
+
+CREATE TABLE root_terms(id integer REFERENCES terms);
 
 ALTER TABLE terms
-  ADD PRIMARY KEY (id),
   ADD FOREIGN KEY (lam) REFERENCES terms;
   -- FOREIGN KEY for app.fun and app.arg?
 

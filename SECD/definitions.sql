@@ -1,5 +1,5 @@
 DROP TYPE IF EXISTS term,var,primitive,env,closure,val,stack,directive,control,frame,dump,lam,app,rule,machine_state,env_entry CASCADE;
-DROP TABLE IF EXISTS terms;
+DROP TABLE IF EXISTS terms, root_terms;
 
 CREATE DOMAIN term AS integer;
 CREATE DOMAIN var  AS text;
@@ -37,10 +37,9 @@ CREATE TYPE env_entry AS (id env, name var, val val);
 --      | Var Text        (Variable)
 --      | Lam Text Term   (Lambda abstraction with variable and body)
 --      | App Term Term   (Application with fun and arg)
-CREATE TABLE terms (id integer GENERATED ALWAYS AS IDENTITY, lit int, var var, lam lam, app app);
+CREATE TABLE terms (id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY, lit int, var var, lam lam, app app);
 
-ALTER TABLE terms
-  ADD PRIMARY KEY (id);
+CREATE TABLE root_terms(id integer REFERENCES terms);
 
 DROP SEQUENCE IF EXISTS env_keys;
 CREATE SEQUENCE env_keys START 1;
