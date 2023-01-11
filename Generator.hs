@@ -5,14 +5,17 @@ import qualified Data.Lambda.Random.MixedSystem as M
 import Data.Lambda.Model 
 import Data.Lambda.Random
 
+-- numbers chosen as parameters are a bit arbitrary, since their significance is hard to understand from the docs
 plainNatSampler = M.rejectionSampler natural 100 (1.0e-9 :: Double)
 
+-- a sampler for CLOSED and REDUCIBLE lambda terms
 sampler :: IO L.Lambda
 sampler = filterClosedIO (\t -> case t of 
                             (L.App _ _) -> True
                             _           -> False) 
                          plainNatSampler 10 100
 
+-- an ADT which models lambda terms with named variables
 data LambdaVar = Var String
                | Abs String LambdaVar
                | App LambdaVar LambdaVar
@@ -23,6 +26,7 @@ instance Show LambdaVar where
     show (Abs x t) = "λ" ++ x ++ ".(" ++ show t ++ ")"
     show (App lt rt) = "(" ++ show lt ++ ") (" ++ show rt ++ ")"
 
+-- given an identifier, compute the next identifier in a lexicographical order
 next :: String -> String
 next [] = "a"
 next s = let l = last s
@@ -30,6 +34,7 @@ next s = let l = last s
             'z' -> next (init s) ++ "a"
             c   -> init s ++ [chr (ord c + 1)]
 
+--convert a lambda term (with DeBruijn indices) to a Lambda term using named variables instead
 toLambdaVar :: L.Lambda -> LambdaVar
 toLambdaVar t = helper t (iterate next "a") []
   where
@@ -42,18 +47,21 @@ toLambdaVar t = helper t (iterate next "a") []
     helper (L.App t1 t2)   freeNames varStack = 
         App (helper t1 freeNames varStack) (helper t2 freeNames varStack)
 
+--convert a lambda term with DeBruijn indices to its JSON representation, embedded in plain text
 lambdaToJSON :: L.Lambda -> String
 lambdaToJSON (L.Var i) = "{\"i\": " ++ show (L.toInt i) ++ "}"
 lambdaToJSON (L.Abs t) = "{\"lam\": " ++ lambdaToJSON t ++ "}"
 lambdaToJSON (L.App t1 t2) = "{\"app\": {\"fun\": " ++ lambdaToJSON t1 ++ ", \"arg\": " ++ lambdaToJSON t2 ++ "}}"
 
-
+--convert a lambda term with named variables to its JSON representation, embedded in plain text
 lambdaVarToJSON :: LambdaVar -> String
 lambdaVarToJSON (Var x) = "{\"var\": \"" ++ x ++ "\"}"
 lambdaVarToJSON (Abs x t) = "{\"lam\": {\"var\": \"" ++ x ++ "\", \"body\": " ++ lambdaVarToJSON t ++ "}}"
 lambdaVarToJSON (App t1 t2) = "{\"app\": {\"fun\": " ++ lambdaVarToJSON t1 ++ ", \"arg\": " ++ lambdaVarToJSON t2 ++ "}}"
 
+--write specified number of generated terms to files
 main :: IO ()
 main = do 
-    terms <- sequence $ replicate 10 sampler
-    writeFile "term_input.json" $ intercalate "\n" $ map (lambdaVarToJSON . toLambdaVar)  terms
+    terms <- sequence $ replicate 1000 sampler
+    writeFile "secd_terms.json" $ intercalate "\n" $ map (lambdaVarToJSON . toLambdaVar) terms
+    writeFile "krivine_terms.json" $ intercalate "\n" $ map lambdaToJSON terms
