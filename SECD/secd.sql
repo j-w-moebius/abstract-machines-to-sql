@@ -168,7 +168,7 @@ $$
           AND e.name <> s.name
       )
 
-      SELECT CASE s.r WHEN '1' THEN true ELSE false END CASE, 
+      SELECT s.r = '1', 
              row(s.s, s.e, s.c, s.d)::machine_state, 
              null::env_entry
       FROM r, step AS s

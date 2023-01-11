@@ -129,7 +129,7 @@ $$
         WHERE s.r = '3'
       )
 
-      SELECT CASE s.r WHEN '1' THEN true ELSE false END CASE,
+      SELECT s.r = '1',
              row(s.t, s.s, s.e)::machine_state,
              null::env_entry
       FROM r, step AS s
