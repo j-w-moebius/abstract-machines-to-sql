@@ -10,3 +10,5 @@ So far, includes:
   - Implentations relying on the `hashtables` extension (on branch `hashtables`):
     - SECD machine
     - Krivine machine
+- DuckDB:
+  - SECD machine
