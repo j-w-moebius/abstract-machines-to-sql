@@ -215,13 +215,15 @@ CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE
         AND NOT (union_id = 2 AND e.id IS NULL)
     )
   )
-  SELECT r.ms.s[1]
+  SELECT r.ms.s[1], (SELECT count(*) 
+                     FROM r 
+                     WHERE r.ms IS NOT NULL)
   FROM r
   WHERE r.finished
 );
 
 -- import raw terms from CSV file
-\copy raw FROM 'terms.csv';
+COPY raw FROM 'terms.csv';
 
 -- copy data from table 'raw' into table 'terms', converting it to correct types
 -- separate INSERT statements avoid cumbersome casts
@@ -250,4 +252,4 @@ INSERT INTO terms (
   WHERE r.app_fun IS NOT NULL
 );
 
-\copy root_terms FROM 'root_terms.csv';
+COPY root_terms FROM 'root_terms.csv';

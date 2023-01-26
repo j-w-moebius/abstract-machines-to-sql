@@ -1,6 +1,6 @@
+DROP TABLE IF EXISTS root_terms;
 DROP TABLE IF EXISTS terms;
 DROP TABLE IF EXISTS raw;
-DROP TABLE IF EXISTS root_terms;
 
 DROP TYPE IF EXISTS primitive;
 DROP TYPE IF EXISTS machine_state;

@@ -1,7 +1,7 @@
 \i SECD/definitions.sql
 
 -- evaluate a lambda term t using an SECD machine
-CREATE OR REPLACE FUNCTION evaluate(t term) RETURNS val AS
+CREATE OR REPLACE FUNCTION evaluate(t term) RETURNS TABLE(v val, n bigint) AS
 $$
 -- The recursive CTE r has the following columns:
 -- finished: indicates wheter the computation is finished
@@ -182,7 +182,9 @@ $$
       FROM new_envs AS e
     )
   )
-  SELECT (r.ms).s[1]
+  SELECT (r.ms).s[1], (SELECT count(*) 
+                       FROM r 
+                       WHERE r.ms IS NOT NULL)
   FROM r
   WHERE r.finished
 $$ LANGUAGE SQL VOLATILE;
