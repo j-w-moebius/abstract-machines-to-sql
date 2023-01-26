@@ -1,7 +1,10 @@
 \i Krivine/definitions.sql
 
+DROP TYPE IF EXISTS result;
+CREATE TYPE result AS (c closure, n bigint);
+
 -- evaluate a lambda term t using a Krivine machine
-CREATE FUNCTION evaluate(t term) RETURNS TABLE(c closure, n bigint) AS
+CREATE FUNCTION evaluate(t term) RETURNS result AS
 $$
 -- The recursive CTE r has the following columns:
 -- finished: indicates whether the computation is finished
@@ -24,12 +27,14 @@ $$
         SELECT (r.ms).*
         FROM r
         WHERE r.ms IS NOT NULL
+	  AND NOT r.finished
       ),
 
       environment(id,c,n) AS (
         SELECT (r.e).*
         FROM r
         WHERE r.e IS NOT NULL
+	  AND NOT r.finished
       ),
 
       term(i,lam,app) AS (
@@ -132,23 +137,23 @@ $$
       SELECT s.r = '1',
              row(s.t, s.s, s.e)::machine_state,
              null::env_entry
-      FROM r, step AS s
-      WHERE NOT r.finished
+      FROM step AS s
 
         UNION ALL
 
-      SELECT null::boolean,
+      SELECT s.r = '1',
              null::machine_state,
-             e::env_entry
-      FROM new_envs AS e
+             ne::env_entry
+      FROM step AS s, new_envs AS ne
     )
   )
   SELECT row((ms).t, (ms).e)::closure,
-         (SELECT count(*) 
+         (SELECT count(*) - 2 
           FROM r 
           WHERE r.ms IS NOT NULL)
   FROM r AS _(finished, ms, _)
   WHERE finished
+    AND ms IS NOT NULL
 $$ LANGUAGE SQL VOLATILE;
 
 

@@ -31,13 +31,15 @@ CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE
       machine(s,e,c,d) AS (
         SELECT r.ms.s, r.ms.e, r.ms.c, r.ms.d
         FROM r
-        WHERE r.ms NOT NULl
+        WHERE r.ms NOT NULL
+	  AND NOT r.finished
       ),
 
       environment(id,name,val) AS (
         SELECT r.e.id, r.e.name, r.e.val
         FROM r
-        WHERE r.e NOT NULl
+        WHERE r.e NOT NULL
+	  AND NOT r.finished
       ),
 
       term(t) AS (
@@ -203,7 +205,7 @@ CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE
           OR (union_id = 3 AND s.r = '7' AND e.id = s.id AND e.name <> s.name)
       )
 
-      SELECT DISTINCT CASE WHEN union_id = 1 THEN s.r = '1' ELSE null END,
+      SELECT DISTINCT s.r = '1',
                       CASE WHEN union_id = 1 THEN {'s': s.s, 'e': s.e, 'c': s.c, 'd': s.d}
                                              ELSE null END,
                       CASE WHEN union_id = 1 THEN null
@@ -211,8 +213,7 @@ CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE
       FROM r,
            step AS s LEFT OUTER JOIN new_envs AS e ON true,
            (VALUES (1), (2)) AS _(union_id)
-      WHERE NOT r.finished
-        AND NOT (union_id = 2 AND e.id IS NULL)
+      WHERE NOT (union_id = 2 AND e.id IS NULL)
     )
   )
   SELECT r.ms.s[1], (SELECT count(*) 

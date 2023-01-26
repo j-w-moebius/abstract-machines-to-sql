@@ -1,7 +1,10 @@
 \i SECD/definitions.sql
 
+DROP TYPE IF EXISTS result;
+CREATE TYPE result AS (v val, n bigint);
+
 -- evaluate a lambda term t using an SECD machine
-CREATE OR REPLACE FUNCTION evaluate(t term) RETURNS TABLE(v val, n bigint) AS
+CREATE OR REPLACE FUNCTION evaluate(t term) RETURNS result AS
 $$
 -- The recursive CTE r has the following columns:
 -- finished: indicates wheter the computation is finished
@@ -25,12 +28,14 @@ $$
         SELECT (r.ms).*
         FROM r
         WHERE r.ms IS NOT NULL
+	  AND NOT r.finished
       ),
 
       environment(id,name,val) AS (
         SELECT (r.e).*
         FROM r
         WHERE r.e IS NOT NULL
+	  AND NOT r.finished
       ),
 
       term(lit,var,lam,app) AS (
@@ -171,22 +176,22 @@ $$
       SELECT s.r = '1', 
              row(s.s, s.e, s.c, s.d)::machine_state, 
              null::env_entry
-      FROM r, step AS s
-      WHERE NOT r.finished
+      FROM step AS s
 
         UNION ALL
 
-      SELECT null::boolean,
+      SELECT s.r = '1',
              null::machine_state, 
-             e::env_entry
-      FROM new_envs AS e
+             ne::env_entry
+      FROM step AS s, new_envs AS ne
     )
   )
-  SELECT (r.ms).s[1], (SELECT count(*) 
-                       FROM r 
-                       WHERE r.ms IS NOT NULL)
+  SELECT (r.ms).s[1], (SELECT count(*) - 2
+	               FROM r
+		       WHERE r.ms IS NOT NULL)
   FROM r
-  WHERE r.finished
+  WHERE r.finished 
+    AND r.ms IS NOT NULL
 $$ LANGUAGE SQL VOLATILE;
 
 DROP TABLE IF EXISTS input_terms;
