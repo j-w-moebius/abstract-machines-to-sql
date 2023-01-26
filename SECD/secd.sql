@@ -1,4 +1,4 @@
-\i definitions.sql
+\i SECD/definitions.sql
 
 -- evaluate a lambda term t using an SECD machine
 CREATE OR REPLACE FUNCTION evaluate(t term) RETURNS val AS
@@ -43,7 +43,7 @@ $$
       -- r: the applied rule, according to which the environment 
       --    will be modified
       -- id, name, val (optional): indicate (for rule 7) that a new 
-      --   environment has to be created by extending id with (name -> val)
+      --   environment has to be created by extending environment id with (name -> val)
       step(r,s,e,c,d,id,name,val) AS (
         --1. Terminate computation
         SELECT '1'::rule,
@@ -190,22 +190,9 @@ $$ LANGUAGE SQL VOLATILE;
 DROP TABLE IF EXISTS input_terms;
 CREATE TABLE input_terms (t jsonb);
 
-\copy input_terms FROM '../secd_terms.json';
+\copy input_terms FROM 'secd_terms.json';
 
 INSERT INTO root_terms(id) (
   SELECT id
   FROM input_terms AS _(t), load_term(t) AS __(id)
 );
-
-/*
-----------------------------------------------------------------------------------
---test
-
-DROP TABLE IF EXISTS test;
-CREATE TABLE test (ms machine_state, e env_entry);
-INSERT INTO test VALUES (row(array[]::stack, 
-           nextval('env_keys')::env, 
-           array[row(1, null)]::control, 
-           array[]::dump)::machine_state,
-           null::env_entry);
-*/

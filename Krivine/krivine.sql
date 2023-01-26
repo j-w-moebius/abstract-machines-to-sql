@@ -1,4 +1,4 @@
-\i definitions.sql
+\i Krivine/definitions.sql
 
 -- evaluate a lambda term t using a Krivine machine
 CREATE FUNCTION evaluate(t term) RETURNS closure AS
@@ -154,38 +154,9 @@ $$ LANGUAGE SQL VOLATILE;
 DROP TABLE IF EXISTS input_terms;
 CREATE TABLE input_terms (t jsonb);
 
-\copy input_terms FROM '../krivine_terms.json';
+\copy input_terms FROM 'krivine_terms.json';
 
 INSERT INTO root_terms(id) (
   SELECT id
   FROM input_terms AS _(t), load_term(t) AS __(id)
 );
-
-
------------------------------------------------------------------
-
--- Only for testing purposes: Create table test to simulate recursive
--- CTE machine_state
-/*
-DROP TABLE IF EXISTS test;
-CREATE TABLE test OF machine_state;
-INSERT INTO test VALUES 
-          (1, 
-           array[row(2,2)]::stack, 
-           2,
-           false);
-
-SELECT e.t,
-       ms.s,
-       e.e,
-       false
-FROM test AS ms JOIN terms AS t
-       ON ms.t = t.id,
-LATERAL (SELECT pop(ms.e, t.i)) AS _(new_env),
-LATERAL (SELECT (e.c).*
-         FROM environments AS e
-         WHERE e.id = new_env) AS e(t, e)
-WHERE NOT ms.finished 
-      AND t.i IS NOT NULL
-
-*/

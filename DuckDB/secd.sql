@@ -1,4 +1,4 @@
-.read definitions.sql
+.read DuckDB/definitions.sql
 
 -- evaluate a lambda term t using an SECD machine
 CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE
@@ -219,3 +219,35 @@ CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE
   FROM r
   WHERE r.finished
 );
+
+-- import raw terms from CSV file
+\copy raw FROM 'terms.csv';
+
+-- copy data from table 'raw' into table 'terms', converting it to correct types
+-- separate INSERT statements avoid cumbersome casts
+
+INSERT INTO terms (
+  SELECT id, r.lit
+  FROM raw AS r
+  WHERE r.lit IS NOT NULL
+);
+
+INSERT INTO terms (
+  SELECT id, r.var
+  FROM raw AS r
+  WHERE r.var IS NOT NULL
+);
+
+INSERT INTO terms (
+  SELECT id, union_value(lam := {'ide': r.lam_ide, 'body': r.lam_body})
+  FROM raw AS r
+  WHERE r.lam_ide IS NOT NULL
+);
+
+INSERT INTO terms (
+  SELECT id, union_value(app := {'fun': r.app_fun, 'arg': r.app_fun})
+  FROM raw AS r
+  WHERE r.app_fun IS NOT NULL
+);
+
+\copy root_terms FROM 'root_terms.csv';
