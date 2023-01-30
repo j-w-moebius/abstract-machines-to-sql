@@ -1,5 +1,8 @@
-testID=$1
-case $testID in 
+#!/bin/bash
+
+# requires variable PSQL_PORT to be set to the port on which postgres is running
+test=$1
+case $test in 
    1) #Vanilla Postgres SECD
       psql -p $PSQL_PORT -q -f SECD/secd.sql
       psql -p $PSQL_PORT -c "SELECT r.* FROM root_terms AS _(t), LATERAL evaluate(t) AS r;"
