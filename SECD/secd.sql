@@ -199,7 +199,7 @@ CREATE TABLE input_terms (t jsonb);
 
 \copy input_terms FROM 'secd_terms.json';
 
-INSERT INTO root_terms(id) (
-  SELECT id
-  FROM input_terms AS _(t), load_term(t) AS __(id)
+INSERT INTO root_terms(term) (
+  SELECT term
+  FROM input_terms AS _(t), load_term(t) AS __(term)
 );

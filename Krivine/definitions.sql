@@ -27,7 +27,7 @@ CREATE TYPE app AS (fun term, arg term);
 
 CREATE TABLE terms (id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY, i int, lam term, app app);
 
-CREATE TABLE root_terms(id integer REFERENCES terms);
+CREATE TABLE root_terms(id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY, term integer REFERENCES terms);
 
 ALTER TABLE terms
   ADD FOREIGN KEY (lam) REFERENCES terms;
