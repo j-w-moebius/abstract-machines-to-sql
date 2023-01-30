@@ -1,7 +1,4 @@
-\i definitions.sql
-
-DROP TYPE IF EXISTS machine_state CASCADE;
-CREATE TYPE machine_state AS (s stack, e env, c control, d dump, finished boolean);
+\i Hashtables/SECD/definitions.sql
 
 -- evaluate a lambda term t using an SECD machine
 CREATE OR REPLACE FUNCTION evaluate(t term) RETURNS val AS
@@ -121,13 +118,3 @@ INSERT INTO root_terms(id) (
   SELECT id
   FROM input_terms AS _(t), load_term(t) AS __(id)
 );
-
-/*
-DROP TABLE IF EXISTS test;
-CREATE TABLE test (s stack, e env, c control, d dump, finished boolean);
-INSERT INTO test VALUES (array[]::stack, 
-           empty_env(), 
-           array[row(1, null)]::control, 
-           array[]::dump, 
-           false);
-*/

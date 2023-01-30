@@ -1,4 +1,4 @@
-\i SECD/definitions.sql
+\i Vanilla-PSQL/SECD/definitions.sql
 
 DROP TYPE IF EXISTS result;
 CREATE TYPE result AS (v val, n int);

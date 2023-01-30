@@ -1,4 +1,4 @@
-\i definitions.sql
+\i Hasthables/Krivine/definitions.sql
 
 DROP TYPE IF EXISTS machine_state CASCADE;
 CREATE TYPE machine_state AS (t term, s stack, e env, finished boolean);

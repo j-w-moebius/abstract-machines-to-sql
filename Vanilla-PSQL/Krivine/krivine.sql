@@ -1,4 +1,4 @@
-\i Krivine/definitions.sql
+\i Vanilla-PSQL/Krivine/definitions.sql
 
 DROP TYPE IF EXISTS result;
 CREATE TYPE result AS (c closure, n bigint);

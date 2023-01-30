@@ -1,4 +1,4 @@
-.read DuckDB/definitions.sql
+.read DuckDB/SECD/definitions.sql
 
 -- evaluate a lambda term t using an SECD machine
 CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE
