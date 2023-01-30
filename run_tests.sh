@@ -5,11 +5,11 @@ test=$1
 case $test in 
    1) #Vanilla Postgres SECD
       psql -p $PSQL_PORT -q -f SECD/secd.sql
-      psql -p $PSQL_PORT -c "SELECT r.* FROM root_terms AS _(_,t), LATERAL evaluate(t) AS r;"
+      psql -p $PSQL_PORT -o out.txt -c "SELECT id,n FROM root_terms AS _(id,t), LATERAL evaluate(t) AS r(_,n);"
       ;;
    2) # Vanilla Postgres Krivine
       psql -p $PSQL_PORT -q -f Krivine/krivine.sql
-      psql -p $PSQL_PORT -c "SELECT r.* FROM root_terms AS _(_,t), LATERAL evaluate(t) AS r;"
+      psql -p $PSQL_PORT -o out.txt -c "SELECT id,n FROM root_terms AS _(id,t), LATERAL evaluate(t) AS r(_,n);"
       ;;
    3) # DuckDB SECD
      psql -p $PSQL_PORT -q -f SECD/secd.sql
