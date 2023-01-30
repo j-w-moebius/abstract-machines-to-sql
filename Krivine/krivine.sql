@@ -164,7 +164,7 @@ CREATE TABLE input_terms (t jsonb);
 
 \copy input_terms FROM 'krivine_terms.json';
 
-INSERT INTO root_terms(_,term) (
+INSERT INTO root_terms(term) (
   SELECT term
   FROM input_terms AS _(t), load_term(t) AS __(term)
 );
