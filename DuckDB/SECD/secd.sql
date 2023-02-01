@@ -1,8 +1,8 @@
 .read DuckDB/SECD/definitions.sql
 
 -- evaluate a lambda term t using an SECD machine
-CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE
-(
+CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE (
+
 -- The recursive CTE r has the following columns:
 -- finished: indicates whether the computation is finished
 -- ms: a single (!) machine state: Only one row per iteration has ms != null
@@ -32,14 +32,14 @@ CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE
         SELECT r.ms.s, r.ms.e, r.ms.c, r.ms.d
         FROM r
         WHERE r.ms NOT NULL
-	  AND NOT r.finished
+	        AND NOT r.finished
       ),
 
       environment(id,name,val) AS (
         SELECT r.e.id, r.e.name, r.e.val
         FROM r
         WHERE r.e NOT NULL
-	  AND NOT r.finished
+	        AND NOT r.finished
       ),
 
       term(t) AS (
@@ -210,17 +210,19 @@ CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE
                                              ELSE null END,
                       CASE WHEN union_id = 1 THEN null
                                              ELSE {'id': e.id, 'name': e.name, 'val': e.val} END
-      FROM r,
-           step AS s LEFT OUTER JOIN new_envs AS e ON true,
+      FROM step AS s LEFT OUTER JOIN new_envs AS e ON true,
            (VALUES (1), (2)) AS _(union_id)
-      WHERE NOT (union_id = 2 AND e.id IS NULL)
+      WHERE (union_id = 1 AND s.r NOT NULL)
+         OR (union_id = 2 AND e.id IS NOT NULL)
     )
   )
-  SELECT r.ms.s[1], (SELECT count(*) 
-                     FROM r 
-                     WHERE r.ms IS NOT NULL)
+  SELECT r.ms.s[1], 
+         (SELECT count(*) - 2
+          FROM r
+          WHERE r.ms IS NOT NULL)
   FROM r
   WHERE r.finished
+    AND r.ms IS NOT NULL
 );
 
 -- import raw terms from CSV file
@@ -248,7 +250,7 @@ INSERT INTO terms (
 );
 
 INSERT INTO terms (
-  SELECT id, union_value(app := {'fun': r.app_fun, 'arg': r.app_fun})
+  SELECT id, union_value(app := {'fun': r.app_fun, 'arg': r.app_arg})
   FROM raw AS r
   WHERE r.app_fun IS NOT NULL
 );

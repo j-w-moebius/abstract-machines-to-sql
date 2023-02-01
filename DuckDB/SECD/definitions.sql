@@ -33,4 +33,4 @@ CREATE SEQUENCE env_keys START 1;
 
 CREATE TABLE raw (id integer PRIMARY KEY, lit integer, var text, lam_ide text, lam_body integer, app_fun integer, app_arg integer);
 
-CREATE TABLE root_terms(id integer REFERENCES terms(id));
+CREATE TABLE root_terms(id integer PRIMARY KEY, term integer REFERENCES terms(id));
