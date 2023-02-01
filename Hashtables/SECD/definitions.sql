@@ -18,7 +18,7 @@ CREATE TYPE app AS (fun term, arg term);
 
 CREATE TABLE terms (id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY, lit int, var var, lam lam, app app);
 
-CREATE TABLE root_terms (id integer REFERENCES terms);
+CREATE TABLE root_terms(id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY, term integer REFERENCES terms);
 
 DROP SEQUENCE IF EXISTS env_keys;
 CREATE SEQUENCE env_keys START 1;
@@ -59,7 +59,7 @@ $$
 LANGUAGE SQL VOLATILE;
 
 -- we use the PG Hashtable extension to model environments
--- It has two key columns (environment_id, identifier) and one value column
+-- The environment HT has two key columns (environment_id, identifier) and one value column
 -- holding the variable's value
 SELECT prepareHT(1, 2, null::env, null :: var, null :: val);
 

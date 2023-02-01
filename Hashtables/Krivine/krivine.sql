@@ -1,10 +1,10 @@
-\i Hasthables/Krivine/definitions.sql
+\i Hashtables/Krivine/definitions.sql
 
-DROP TYPE IF EXISTS machine_state CASCADE;
-CREATE TYPE machine_state AS (t term, s stack, e env, finished boolean);
+DROP TYPE IF EXISTS result CASCADE;
+CREATE TYPE result AS (c closure, n bigint);
 
 -- evaluate a lambda term t using a Krivine machine
-CREATE OR REPLACE FUNCTION evaluate(t term) RETURNS closure AS
+CREATE OR REPLACE FUNCTION evaluate(t term) RETURNS result AS
 $$
   WITH RECURSIVE machine_states(t,s,e,finished) AS (
   
@@ -69,7 +69,9 @@ $$
 
     ) AS step(t,s,e,finished)  
   )
-  SELECT row(t,e)::closure
+  SELECT row(t,e)::closure,
+         (SELECT count(*) - 2 
+          FROM machine_states)
   FROM machine_states AS ms(t,_,e)
   WHERE finished
 $$ LANGUAGE SQL VOLATILE;
@@ -80,9 +82,9 @@ $$ LANGUAGE SQL VOLATILE;
 DROP TABLE IF EXISTS input_terms;
 CREATE TABLE input_terms (t jsonb);
 
-\copy input_terms FROM '../term_input.json';
+\copy input_terms FROM 'krivine_terms.json';
 
-INSERT INTO root_terms(id) (
-  SELECT id
-  FROM input_terms AS _(t), load_term(t) AS __(id)
+INSERT INTO root_terms(term) (
+  SELECT term
+  FROM input_terms AS _(t), load_term(t) AS __(term)
 );

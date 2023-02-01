@@ -1,7 +1,10 @@
 \i Hashtables/SECD/definitions.sql
 
+DROP TYPE IF EXISTS result;
+CREATE TYPE result AS (v val, n bigint);
+
 -- evaluate a lambda term t using an SECD machine
-CREATE OR REPLACE FUNCTION evaluate(t term) RETURNS val AS
+CREATE OR REPLACE FUNCTION evaluate(t term) RETURNS result AS
 $$
   WITH RECURSIVE machine_states(s,e,c,d,finished) AS (
   
@@ -104,7 +107,9 @@ $$
         
     ) AS step(s,e,c,d,finished)  
   )
-  SELECT s[1]
+  SELECT s[1], 
+         (SELECT count(*) - 3
+          FROM machine_states)
   FROM machine_states AS ms(s,_,_,_,finished)
   WHERE finished
 $$ LANGUAGE SQL VOLATILE;
@@ -112,9 +117,9 @@ $$ LANGUAGE SQL VOLATILE;
 DROP TABLE IF EXISTS input_terms;
 CREATE TABLE input_terms (t jsonb);
 
-\copy input_terms FROM '../term_input.json';
+\copy input_terms FROM 'secd_terms.json';
 
-INSERT INTO root_terms(id) (
-  SELECT id
-  FROM input_terms AS _(t), load_term(t) AS __(id)
+INSERT INTO root_terms(term) (
+  SELECT term
+  FROM input_terms AS _(t), load_term(t) AS __(term)
 );
