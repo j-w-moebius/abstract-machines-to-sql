@@ -1,3 +1,6 @@
 test*
 /hashtable-extension/**
 *.csv
+duckdb_commands.sql
+out*
+duckdb_cli
