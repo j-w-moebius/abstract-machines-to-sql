@@ -97,7 +97,7 @@ $$
   )
   SELECT COALESCE((SELECT DISTINCT new_env
                   FROM old_env AS _(env,ide,val),
-                  LATERAL insertToHT(1, false, new_env::env, ide, val)), 
+                  LATERAL insertToHT(1, false, new_env, ide, val)), 
                   new_env)
   FROM empty_env() AS _(new_env)
 $$
