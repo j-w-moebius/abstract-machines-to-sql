@@ -1,7 +1,9 @@
 \i Hashtables/SECD/definitions.sql
 
-DROP TYPE IF EXISTS result;
+DROP TYPE IF EXISTS result, machine_state;
 CREATE TYPE result AS (v val, n bigint);
+
+CREATE TYPE machine_state AS (s stack, e env, c control, d dump);
 
 -- evaluate a lambda term t using an SECD machine
 CREATE OR REPLACE FUNCTION evaluate(t term) RETURNS result AS
@@ -107,10 +109,10 @@ $$
         
     ) AS step(s,e,c,d,finished)  
   )
-  SELECT s[1], 
+  SELECT ms.s[1], 
          (SELECT count(*) - 3
           FROM machine_states)
-  FROM machine_states AS ms(s,_,_,_,finished)
+  FROM machine_states AS ms(s,e,c,d,finished)
   WHERE finished
 $$ LANGUAGE SQL VOLATILE;
 

@@ -4,7 +4,7 @@ DROP TABLE IF EXISTS terms, root_terms;
 CREATE DOMAIN term AS integer;
 CREATE DOMAIN var  AS text;
 CREATE TYPE primitive AS ENUM('apply');
-CREATE DOMAIN env AS int;
+CREATE DOMAIN env AS bigint;
 CREATE TYPE closure AS (v var, t term, e env);    -- Closure = (Var, Term, Env)
 CREATE TYPE val AS (c closure, n int);            -- Val = Closure | Int
 CREATE DOMAIN stack AS val[];
@@ -71,7 +71,8 @@ $$
 $$
 LANGUAGE SQL VOLATILE;
 
--- extend an environment env's bindings by (ide -> v)
+-- extend an environment e's bindings by (ide -> v)
+-- return e
 -- overwrite if variable is already bound
 CREATE FUNCTION extend(e env, ide var, v val) RETURNS env AS
 $$
@@ -86,14 +87,19 @@ $$
 $$
 LANGUAGE SQL VOLATILE;
 
--- create copy of env e
+-- copy env e to new_env and return new_env
 CREATE FUNCTION copy_env(e env) RETURNS env AS
 $$
-  SELECT DISTINCT new_env
-  FROM scanHT(1) AS _(env env, ide var, val val), 
-       empty_env() AS new_env,
-  LATERAL insertToHT(1, false, new_env, ide, val)
-  WHERE env = e
+  WITH old_env(env,ide,val) AS (
+    SELECT env, ide, val
+    FROM scanHT(1) AS _(env env, ide var, val val)
+    WHERE env = e
+  )
+  SELECT COALESCE((SELECT DISTINCT new_env
+                  FROM old_env AS _(env,ide,val),
+                  LATERAL insertToHT(1, false, new_env::env, ide, val)), 
+                  new_env)
+  FROM empty_env() AS _(new_env)
 $$
 LANGUAGE SQL VOLATILE;
 
