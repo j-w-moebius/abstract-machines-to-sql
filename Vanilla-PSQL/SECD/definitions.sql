@@ -26,7 +26,7 @@ CREATE TYPE machine_state AS (s stack, e env, c control, d dump);
 -- id: The environment's identifier
 -- name: The name of a variable
 -- val: The value to which this variable is bound in environment id
-CREATE TYPE env_entry AS (id env, name var, val val);
+CREATE TYPE env_entry AS (id env, name var, val val, next env);
 
 -- The self-referencing table terms holds all globally existing terms.
 -- invariant: After filling it with load_term, it doesn't change.

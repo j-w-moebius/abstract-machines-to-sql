@@ -31,7 +31,7 @@ $$
 	  AND NOT r.finished
       ),
 
-      environment(id,name,val) AS (
+      environment(id,name,val,next) AS (
         SELECT (r.e).*
         FROM r
         WHERE r.e IS NOT NULL
@@ -93,16 +93,31 @@ $$
           
         --4. Push variable value onto stack
         SELECT '4'::rule,
-               (array[(SELECT e.val
-                       FROM environment AS e
-                       WHERE e.id = ms.e AND e.name = t.var
-                       )] || ms.s)::stack, 
+               (array[variable_value] || ms.s)::stack, 
                 ms.e, 
                 ms.c[2:]::control, 
                 ms.d, 
                 null,null,null
         FROM machine AS ms,
-             term AS t
+             term AS t,
+             -- traverse environment stack until needed variable is found for the first time
+             LATERAL (
+              WITH RECURSIVE s(e,name,val) AS (
+                SELECT e.next, e.name, e.val
+                FROM environment AS e
+                WHERE ms.e = e.id
+                  
+                  UNION ALL
+
+                SELECT e.next, e.name, e.val
+                FROM s JOIN environment AS e
+                     ON s.e = e.id
+                WHERE s.name <> t.var
+              )
+              SELECT s.val
+              FROM s
+              WHERE s.name = t.var
+             ) AS _(variable_value)
         WHERE t.var IS NOT NULL
           
           UNION ALL
@@ -150,7 +165,7 @@ $$
       ),
 
       --update the environments according to the rule applied by 'step'
-      new_envs(id,name,val) AS (
+      new_envs(id,name,val,next) AS (
         -- use old env
         SELECT e.*
         FROM step AS s, environment AS e
@@ -159,18 +174,9 @@ $$
           UNION ALL
 
          -- add new binding to new env
-        SELECT s.e, s.name, s.val
+        SELECT s.e, s.name, s.val, s.id
         FROM step AS s
         WHERE s.r = '7'
-
-          UNION ALL
-        
-        -- create copy of old env, omitting overwritte variable
-        SELECT s.e, e.name, e.val
-        FROM step AS s, environment AS e
-        WHERE s.r = '7'
-          AND e.id = s.id
-          AND e.name <> s.name
       )
 
       SELECT s.r = '1', 

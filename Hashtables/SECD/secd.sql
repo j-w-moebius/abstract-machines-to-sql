@@ -11,7 +11,7 @@ $$
   WITH RECURSIVE machine_states(s,e,c,d,finished) AS (
   
     SELECT array[]::stack, 
-           empty_env(), 
+           nextval('env_keys'), 
            array[row(t, null)]::control, 
            array[]::dump, 
            false
@@ -72,7 +72,7 @@ $$
         UNION ALL
         
       --5. Push lambda abstraction onto stack as closure
-      SELECT (array[row(row(lam.var, lam.body, copy_env(ms.e)),null)]::stack || ms.s)::stack, 
+      SELECT (array[row(row(lam.var, lam.body, ms.e),null)]::stack || ms.s)::stack, 
              ms.e, 
              ms.c[2:]::control, 
              ms.d, 

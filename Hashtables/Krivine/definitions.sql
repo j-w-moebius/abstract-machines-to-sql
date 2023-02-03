@@ -124,13 +124,3 @@ $$
   LATERAL insertToHT(1, true, new_env, c, e);
 $$
 LANGUAGE SQL VOLATILE;
-
-/*
-SELECT empty_env();
-SELECT empty_env();
-SELECT load_term('{"i": 8}');
-SELECT push(1,row(1,2));
-SELECT push(3,row(1,2));
-DELETE FROM environments AS e WHERE e.id = 1;
-SELECT 1;
-*/

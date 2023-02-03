@@ -59,56 +59,47 @@ $$
 LANGUAGE SQL VOLATILE;
 
 -- we use the PG Hashtable extension to model environments
--- The environment HT has two key columns (environment_id, identifier) and one value column
--- holding the variable's value
-SELECT prepareHT(1, 2, null::env, null :: var, null :: val);
+-- The environment HT has one key columns (environment_id) and three value columns
+-- holding the variable's name, its value and a pointer to the next environment row
+SELECT prepareHT(1, 1, null::env, null :: var, null :: val, null :: env);
 
 -- look up identifier ide in environment env
 -- return corresponding value or null if ide not defined in env
 CREATE FUNCTION lookup(e env, ide var) RETURNS val AS
 $$
-  SELECT v FROM lookupHT(1, false, e, ide) AS _(_ env, __ var, v val);
+  WITH RECURSIVE s(e,name,val) AS (
+    SELECT e.next, e.name, e.v
+    FROM lookupHT(1, false, e) AS e(_ env, name var, v val, next env)
+      
+      UNION ALL
+    
+    SELECT e.next, e.name, e.v
+    FROM s, 
+    LATERAL lookupHT(1, false, s.e) AS e(_ env, name var, v val, next env)
+    WHERE s.name <> ide
+  )
+  SELECT s.val
+  FROM s
+  WHERE s.name = ide
 $$
 LANGUAGE SQL VOLATILE;
 
 -- extend an environment e's bindings by (ide -> v)
 -- return e
--- overwrite if variable is already bound
+-- wich overwrites if variable is already bound
 CREATE FUNCTION extend(e env, ide var, v val) RETURNS env AS
 $$
-  SELECT e FROM insertToHT(1, true, e, ide, v);
+  SELECT new_env
+  FROM (SELECT nextval('env_keys')::env) AS _(new_env),
+  LATERAL insertToHT(1, true, new_env, ide, v, e)
 $$
 LANGUAGE SQL VOLATILE;
-
--- return new empty env
-CREATE FUNCTION empty_env() RETURNS env AS 
-$$
-  SELECT nextval('env_keys')
-$$
-LANGUAGE SQL VOLATILE;
-
--- copy env e to new_env and return new_env
-CREATE FUNCTION copy_env(e env) RETURNS env AS
-$$
-  WITH old_env(env,ide,val) AS (
-    SELECT env, ide, val
-    FROM scanHT(1) AS _(env env, ide var, val val)
-    WHERE env = e
-  )
-  SELECT COALESCE((SELECT DISTINCT new_env
-                  FROM old_env AS _(env,ide,val),
-                  LATERAL insertToHT(1, false, new_env, ide, val)), 
-                  new_env)
-  FROM empty_env() AS _(new_env)
-$$
-LANGUAGE SQL VOLATILE;
-
 
 -- only for debugging
-CREATE FUNCTION display_envs() RETURNS TABLE (env env, ide var, val val) AS 
+CREATE FUNCTION display_envs() RETURNS TABLE (env env, ide var, val val, next env) AS 
 $$
   SELECT * 
-  FROM scanHT(1) AS _(env env, ide var, val val)
+  FROM scanHT(1) AS _(env env, ide var, val val, next env)
   ORDER BY env, ide
 $$
 LANGUAGE SQL VOLATILE;
