@@ -14,10 +14,10 @@ case $test in
       psql -p $PSQL_PORT -o out.txt -q -c "\timing on" -c "SELECT id,val,n FROM root_terms AS _(id,t), LATERAL evaluate(t) AS r(val,n);"
       ;;
    3) #Hashtable Postgres SECD (hashtable is lost if set up in separate command)
-      psql -p $PSQL_PORT --variable=term_set=$testSet -o out.txt -q -c "\timing on" -c "\i Hashtables/SECD/secd.sql" -c "SELECT id,val,n FROM root_terms AS _(id,t), LATERAL evaluate(t) AS r(val,n);"
+      psql -p $PSQL_PORT --variable=term_set=$testSet -o out.txt -q -c "\i Hashtables/SECD/secd.sql" -c "\timing on" -c "SELECT id,val,n FROM root_terms AS _(id,t), LATERAL evaluate(t) AS r(val,n);"
       ;;
    4) #Hashtable Postgres Krivine
-      psql -p $PSQL_PORT --variable=term_set=$testSet -o out.txt -q -c "\timing on" -c "\i Hashtables/Krivine/krivine.sql" -c "SELECT id,val,n FROM root_terms AS _(id,t), LATERAL evaluate(t) AS r(val,n);"
+      psql -p $PSQL_PORT --variable=term_set=$testSet -o out.txt -q -c "\i Hashtables/Krivine/krivine.sql" -c "\timing on" -c "SELECT id,val,n FROM root_terms AS _(id,t), LATERAL evaluate(t) AS r(val,n);"
       ;;
    5) # DuckDB SECD (sed hack due to DuckDB forbidding the use of recursive CTEs in correlated subqueries)
      psql -p $PSQL_PORT --variable=term_set=$testSet -q -f Vanilla-PSQL/SECD/secd.sql
