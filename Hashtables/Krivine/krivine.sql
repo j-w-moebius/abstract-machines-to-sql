@@ -77,14 +77,8 @@ $$
 $$ LANGUAGE SQL VOLATILE;
 
 
--- load input term from json file:
-
-DROP TABLE IF EXISTS input_terms;
-CREATE TABLE input_terms (t jsonb);
-
-\copy input_terms FROM 'krivine_terms.json';
-
 INSERT INTO root_terms(term) (
   SELECT term
-  FROM input_terms AS _(t), load_term(t) AS __(term)
+  FROM input_terms_krivine AS _(set_id, t), load_term(t) AS __(term)
+  WHERE set_id = :term_set
 );

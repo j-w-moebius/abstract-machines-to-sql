@@ -194,12 +194,8 @@ $$
     AND r.ms IS NOT NULL
 $$ LANGUAGE SQL VOLATILE;
 
-DROP TABLE IF EXISTS input_terms;
-CREATE TABLE input_terms (t jsonb);
-
-\copy input_terms FROM 'secd_terms.json';
-
 INSERT INTO root_terms(term) (
   SELECT term
-  FROM input_terms AS _(t), load_term(t) AS __(term)
+  FROM input_terms_secd AS _(set_id,t), load_term(t) AS __(term)
+  WHERE set_id = :term_set
 );
