@@ -164,9 +164,9 @@ $$ LANGUAGE SQL VOLATILE;
 
 -- load input term from json file:
 
-INSERT INTO root_terms(term) (
-  SELECT term
-  FROM input_terms_krivine AS _(set_id, t), load_term(t) AS __(term)
+INSERT INTO root_terms (
+  SELECT term_id, term
+  FROM input_terms_krivine AS _(set_id, term_id, t), load_term(t) AS __(term)
   WHERE set_id = 2
 );
 

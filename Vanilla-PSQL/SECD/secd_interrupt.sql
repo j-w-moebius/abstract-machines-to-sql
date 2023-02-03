@@ -203,9 +203,9 @@ $$
     AND r.ms IS NOT NULL
 $$ LANGUAGE SQL VOLATILE;
 
-INSERT INTO root_terms(term) (
-  SELECT term
-  FROM input_terms_secd AS _(set_id,t), load_term(t) AS __(term)
+INSERT INTO root_terms (
+  SELECT term_id,term
+  FROM input_terms_secd AS _(set_id,term_id,t), load_term(t) AS __(term)
   WHERE set_id = 1
 );
 

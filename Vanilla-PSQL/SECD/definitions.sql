@@ -39,7 +39,7 @@ CREATE TYPE env_entry AS (id env, name var, val val, next env);
 --      | App Term Term   (Application with fun and arg)
 CREATE TABLE terms (id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY, lit int, var var, lam lam, app app);
 
-CREATE TABLE root_terms(id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY, term integer REFERENCES terms);
+CREATE TABLE root_terms(id integer PRIMARY KEY, term integer REFERENCES terms);
 
 DROP SEQUENCE IF EXISTS env_keys;
 CREATE SEQUENCE env_keys START 1;
