@@ -4,3 +4,4 @@ test*
 duckdb_commands.sql
 out*
 duckdb_cli
+Generator.hs
