@@ -23,3 +23,21 @@ INSERT INTO input_terms_krivine(set_id, t) (
 );
 
 DELETE FROM raw;
+
+\copy raw FROM 'term-sets/2/secd.json';
+
+INSERT INTO input_terms_secd(set_id, t) (
+    SELECT 2, t
+    FROM raw AS _(t)
+);
+
+DELETE FROM raw;
+
+\copy raw FROM 'term-sets/2/krivine.json';
+
+INSERT INTO input_terms_krivine(set_id, t) (
+    SELECT 2, t
+    FROM raw AS _(t)
+);
+
+DELETE FROM raw;
