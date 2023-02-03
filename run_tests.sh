@@ -1,9 +1,10 @@
 #!/bin/bash
 
+# before testing, run `psql -p $PSQL_PORT -q -f import_terms.sql` once
+
 # requires variable PSQL_PORT to be set to the port on which postgres is running
 test=$1
 testSet=$2
-psql -p $PSQL_PORT -f import_terms.sql
 case $test in 
    1) #Vanilla Postgres SECD
       psql -p $PSQL_PORT --variable=term_set=$testSet -q -f Vanilla-PSQL/SECD/secd.sql
