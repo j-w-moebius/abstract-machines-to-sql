@@ -83,44 +83,9 @@ DROP SEQUENCE IF EXISTS env_keys;
 CREATE SEQUENCE env_keys START 1;
 
 -- we use the PG Hashtable extension to model environments
--- It has a key columns (id) and two value columns
+-- It has a key column (id) and two value columns
 -- holding the variable's associated closure and a pointer to the next closure 
 -- A table row corresponds to a closure. An environment can be seen as a stack of closures.
 -- Hence, linking multiple closures to environments is done via the self-reference in column 'next'.
 
 SELECT prepareHT(1, 1, null::env, null :: closure, null :: env);
-
--- pop n closures from environmet e and return the remaining environment
-CREATE FUNCTION pop(e env, n int) RETURNS env AS
-$$
-  WITH RECURSIVE r(e, n) AS (
-    SELECT e, n
-
-      UNION ALL
-    
-    SELECT next_env, r.n - 1
-    FROM r,
-    LATERAL lookupHT(1, false, r.e) AS _(_ env, __ closure, next_env env)
-    WHERE r.n > 0
-  )
-  SELECT r.e
-  FROM r
-  WHERE r.n = 0
-$$
-LANGUAGE SQL VOLATILE;
-
--- return new empty environment
-CREATE FUNCTION empty_env() RETURNS env AS 
-$$
-  SELECT nextval('env_keys')
-$$
-LANGUAGE SQL VOLATILE;
-
--- push a closure c onto an environment e
-CREATE FUNCTION push(e env, c closure) RETURNS env AS
-$$
-  SELECT new_env
-  FROM empty_env() AS new_env, 
-  LATERAL insertToHT(1, true, new_env, c, e);
-$$
-LANGUAGE SQL VOLATILE;
