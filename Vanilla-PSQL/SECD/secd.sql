@@ -28,14 +28,14 @@ $$
         SELECT (r.ms).*
         FROM r
         WHERE r.ms IS NOT NULL
-	  AND NOT r.finished
+	        AND NOT r.finished
       ),
 
       environment(id,name,val,next) AS (
         SELECT (r.e).*
         FROM r
         WHERE r.e IS NOT NULL
-	  AND NOT r.finished
+	        AND NOT r.finished
       ),
 
       term(lit,var,lam,app) AS (

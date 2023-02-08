@@ -63,38 +63,6 @@ LANGUAGE SQL VOLATILE;
 -- holding the variable's name, its value and a pointer to the next environment row
 SELECT prepareHT(1, 1, null::env, null :: var, null :: val, null :: env);
 
--- look up identifier ide in environment env
--- return corresponding value or null if ide not defined in env
-CREATE FUNCTION lookup(e env, ide var) RETURNS val AS
-$$
-  WITH RECURSIVE s(e,name,val) AS (
-    SELECT e.next, e.name, e.v
-    FROM lookupHT(1, false, e) AS e(_ env, name var, v val, next env)
-      
-      UNION ALL
-    
-    SELECT e.next, e.name, e.v
-    FROM s, 
-    LATERAL lookupHT(1, false, s.e) AS e(_ env, name var, v val, next env)
-    WHERE s.name <> ide
-  )
-  SELECT s.val
-  FROM s
-  WHERE s.name = ide
-$$
-LANGUAGE SQL VOLATILE;
-
--- extend an environment e's bindings by (ide -> v)
--- return e
--- wich overwrites if variable is already bound
-CREATE FUNCTION extend(e env, ide var, v val) RETURNS env AS
-$$
-  SELECT new_env
-  FROM (SELECT nextval('env_keys')::env) AS _(new_env),
-  LATERAL insertToHT(1, true, new_env, ide, v, e)
-$$
-LANGUAGE SQL VOLATILE;
-
 -- only for debugging
 CREATE FUNCTION display_envs() RETURNS TABLE (env env, ide var, val val, next env) AS 
 $$
