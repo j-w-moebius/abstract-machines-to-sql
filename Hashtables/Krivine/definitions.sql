@@ -89,3 +89,12 @@ CREATE SEQUENCE env_keys START 1;
 -- Hence, linking multiple closures to environments is done via the self-reference in column 'next'.
 
 SELECT prepareHT(1, 1, null::env, null :: closure, null :: env);
+
+-- only for debugging
+CREATE FUNCTION display_envs() RETURNS TABLE (env env, c closure, next env) AS 
+$$
+  SELECT * 
+  FROM scanHT(1) AS _(env env, c closure, next env)
+  ORDER BY env
+$$
+LANGUAGE SQL VOLATILE;
