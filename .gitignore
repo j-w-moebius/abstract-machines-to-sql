@@ -4,4 +4,6 @@ test*
 duckdb_commands.sql
 out*
 duckdb_cli
-Generator.hs
+secd.json
+Generation/secd_terms.json
+Generation/krivine_terms.json

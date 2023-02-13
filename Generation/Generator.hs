@@ -11,9 +11,10 @@ plainNatSampler = M.rejectionSampler natural 100 (1.0e-9 :: Double)
 -- a sampler for CLOSED and REDUCIBLE lambda terms
 sampler :: IO L.Lambda
 sampler = filterClosedIO (\t -> case t of 
-                            (L.App _ _) -> True
+                            (L.App (L.Abs (L.Abs _)) _) -> False
+                            (L.App _ _)                 -> True
                             _           -> False) 
-                         plainNatSampler 10 100
+                         plainNatSampler 100 1000
 
 -- an ADT which models lambda terms with named variables
 data LambdaVar = Var String
@@ -62,6 +63,6 @@ lambdaVarToJSON (App t1 t2) = "{\"app\": {\"fun\": " ++ lambdaVarToJSON t1 ++ ",
 --write specified number of generated terms to files
 main :: IO ()
 main = do 
-    terms <- sequence $ replicate 1000 sampler
-    writeFile "secd_terms.json" $ intercalate "\n" $ map (lambdaVarToJSON . toLambdaVar) terms
-    writeFile "krivine_terms.json" $ intercalate "\n" $ map lambdaToJSON terms
+    terms <- sequence $ replicate 100 sampler
+    writeFile "Generation/secd_terms.json" $ intercalate "\n" $ map (lambdaVarToJSON . toLambdaVar) terms
+    writeFile "Generation/krivine_terms.json" $ intercalate "\n" $ map lambdaToJSON terms
