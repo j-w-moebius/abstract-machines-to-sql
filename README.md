@@ -5,10 +5,18 @@ Work in progress for my Bachelor's thesis.
 So far, includes:
 - PostgreSQL:
   - Vanilla PostgreSQL implentations:
-    - SECD machine
-    - Krivine machine
+    - SECD machine     (1)
+    - Krivine machine  (2)
   - Implentations relying on the `hashtables` extension:
-    - SECD machine
-    - Krivine machine
+    - SECD machine     (3)
+    - Krivine machine  (4)
 - DuckDB:
-  - SECD machine
+  - SECD machine       (5)
+
+## Term sets
+
+| #        | Term depth | Evaluation steps|
+|----------|------------|-----------------|
+| 1        | 100-1000   | 1-25            |
+| 2        | 100-1000   | 25-200          |
+| 3        | 100-1000   | 200-1000        |
