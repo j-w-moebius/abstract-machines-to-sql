@@ -146,8 +146,7 @@ $$
     )
   )
   SELECT r.s[1], 
-         (SELECT count(*) - 3
-          FROM r)
-  FROM r AS r(s,e,c,d,finished)
+         r.n
+  FROM r AS r(s,e,c,d,finished,n)
   WHERE finished
 $$ LANGUAGE SQL VOLATILE;

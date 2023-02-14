@@ -19,18 +19,14 @@ INSERT INTO root_terms (
   WHERE set_id = :i
 );
 
-WITH deleted(id) AS (
-
 DELETE FROM input_terms_secd AS t
 WHERE t.set_id = :i
   AND t.term_id IN (
-  SELECT id
-  FROM root_terms AS __(id,t), LATERAL evaluate_interrupt(t, :max) AS r(v, n)
-  WHERE r IS NULL
-     OR r.n < :min
-)
-RETURNING t.term_id
-)
+    SELECT id
+    FROM root_terms AS __(id,t), LATERAL evaluate_interrupt(t, :max) AS r(v, n)
+    WHERE r IS NULL
+       OR r.n < :min
+  );
 
 SELECT COUNT(*)
-FROM deleted;
+FROM input_terms_secd;
