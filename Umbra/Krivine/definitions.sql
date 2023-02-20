@@ -13,10 +13,10 @@ CREATE TABLE terms (id integer PRIMARY KEY, i int, lam integer, app_fun integer,
 
 CREATE TABLE root_terms (id integer PRIMARY KEY, term integer REFERENCES terms);
 
-ALTER TABLE terms
-  ADD FOREIGN KEY (lam) REFERENCES terms,
-  ADD FOREIGN KEY (app_fun) REFERENCES terms,
-  ADD FOREIGN KEY (app_arg) REFERENCES terms;
+--ALTER TABLE terms
+--  ADD FOREIGN KEY (lam) REFERENCES terms,
+--  ADD FOREIGN KEY (app_fun) REFERENCES terms,
+--  ADD FOREIGN KEY (app_arg) REFERENCES terms;
 
 COPY terms FROM 'terms.csv' CSV;
 COPY root_terms FROM 'root_terms.csv' CSV;
