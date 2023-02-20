@@ -27,4 +27,10 @@ case $test in
      cat root_terms.csv | sed -e 's/\(.*\),\(.*\)/SELECT \1 AS id,val,n FROM evaluate(\2) AS _(val,n);/g' > duckdb_commands.sql
      ./duckdb_cli -c ".output out.txt" -c ".read DuckDB/SECD/secd.sql" -c ".timer on" -c ".read duckdb_commands.sql"
      ;;
+   6) #Umbra
+     psql -p $PSQL_PORT --variable=term_set=$testSet -q -f Vanilla-PSQL/Krivine/krivine.sql
+     psql -p $PSQL_PORT -q -c "\copy (SELECT id, i, lam, (app).fun, (app).arg FROM terms) TO 'terms.csv' CSV;"
+     psql -p $PSQL_PORT -q -c "\copy (TABLE root_terms) TO 'root_terms.csv' CSV;"
+     ~/umbra/bin/sql "" Umbra/Krivine/krivine.sql 
+
 esac
