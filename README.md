@@ -12,6 +12,8 @@ So far, includes:
     - Krivine machine  (4)
 - DuckDB:
   - SECD machine       (5)
+- Umbra:
+  - Krivine machine    (6)
 
 ## Term sets
 
