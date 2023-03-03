@@ -3,7 +3,7 @@
 DROP TYPE IF EXISTS result CASCADE;
 CREATE TYPE result AS (c closure, n bigint);
 
--- evaluate a lambda term t using a Krivine machine
+-- evaluate a lambda term t using a Krivine machine, but stop after cutoff steps
 CREATE OR REPLACE FUNCTION evaluate_interrupt(t term, cutoff bigint) RETURNS result AS
 $$
   WITH RECURSIVE r(t,s,e,finished,n) AS (
