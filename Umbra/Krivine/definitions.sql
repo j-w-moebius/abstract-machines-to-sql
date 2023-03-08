@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS terms, root_terms, env_keys;
+DROP TABLE IF EXISTS terms, root_terms;
 
 -- The self-referencing table terms holds all globally existing terms.
 -- invariant: After filling it with load_term, it doesn't change.
@@ -6,8 +6,6 @@ DROP TABLE IF EXISTS terms, root_terms, env_keys;
 -- Term = I Int           (De Bruijn Index)
 --      | Lam Term        (Lambda with body)
 --      | App Term Term   (Application with fun and arg)
-
-CREATE TABLE env_keys (env integer);
 
 CREATE TABLE terms (id integer PRIMARY KEY, i int, lam integer, app_fun integer, app_arg integer);
 
