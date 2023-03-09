@@ -1,25 +1,19 @@
 \i Hashtables/SECD/definitions.sql
 
-DROP TYPE IF EXISTS result, machine_state;
-CREATE TYPE result AS (v val, n bigint);
-
-CREATE TYPE machine_state AS (s stack, e env, c control, d dump);
-
 -- evaluate a lambda term t using an SECD machine
-CREATE OR REPLACE FUNCTION evaluate(t term) RETURNS result AS
+CREATE OR REPLACE FUNCTION evaluate(t term) RETURNS TABLE (v val, steps bigint) AS
 $$
-  WITH RECURSIVE r(s,e,c,d,finished) AS (
+  WITH RECURSIVE r(finished,s,e,c,d) AS (
   
-    SELECT array[]::stack, 
+    SELECT false,
+           array[]::stack, 
            nextval('env_keys')::env, 
            array[row(t, null)]::control, 
-           array[]::dump, 
-           false
+           array[]::dump
     
       UNION ALL
       
     (WITH
-      r AS (TABLE r),                -- non-linear recursion hack
       machine(s,e,c,d) AS (
         SELECT r.s, r.e, r.c, r.d
         FROM r
@@ -28,17 +22,17 @@ $$
 
       term(lit,var,lam,app) AS (
         SELECT t.lit, t.var, t.lam, t.app
-        FROM machine AS ms, terms AS t
-        WHERE ms.c[1].t = t.id
+        FROM machine AS ms JOIN terms AS t
+          ON ms.c[1].t = t.id
       ),
 
-      step(s,e,c,d,finished) AS (
+      step(finished,s,e,c,d) AS (
         --1. Terminate computation
-        SELECT ms.s, 
-              ms.e, 
-              ms.c, 
-              ms.d, 
-              true
+        SELECT true,
+               ms.s, 
+               ms.e, 
+               ms.c, 
+               ms.d
         FROM machine AS ms
         WHERE cardinality(ms.s) = 1 
           AND cardinality(ms.c) = 0 
@@ -47,11 +41,11 @@ $$
           UNION ALL
           
         --2. Return from function call
-        SELECT (ms.s || d.s)::stack, 
-              d.e, 
-              d.c, 
-              ms.d[2:]::dump, 
-              false
+        SELECT false,
+               (ms.s || d.s)::stack, 
+               d.e, 
+               d.c, 
+               ms.d[2:]::dump
         FROM machine AS ms,
         LATERAL (SELECT ms.d[1].*) AS d(s,e,c)
         WHERE cardinality(ms.s) = 1 
@@ -60,11 +54,11 @@ $$
           UNION ALL
           
         --3. Push literal onto stack
-        SELECT (array[row(null,t.lit)]::stack || ms.s)::stack, 
-              ms.e, 
-              ms.c[2:]::control, 
-              ms.d, 
-              false
+        SELECT false,
+               (array[row(null,t.lit)]::stack || ms.s)::stack, 
+               ms.e, 
+               ms.c[2:]::control, 
+               ms.d
         FROM machine AS ms,
             term AS t
         WHERE t.lit IS NOT NULL
@@ -72,11 +66,11 @@ $$
           UNION ALL
           
         --4. Push variable value onto stack
-        SELECT (array[variable_value] || ms.s)::stack, 
-              ms.e, 
-              ms.c[2:]::control, 
-              ms.d, 
-              false
+        SELECT false,
+               (array[variable_value] || ms.s)::stack, 
+               ms.e, 
+               ms.c[2:]::control, 
+               ms.d
         FROM machine AS ms,
             term AS t,
         LATERAL (
@@ -100,11 +94,11 @@ $$
           UNION ALL
           
         --5. Push lambda abstraction onto stack as closure
-        SELECT (array[row(row(lam.var, lam.body, ms.e),null)]::stack || ms.s)::stack, 
-              ms.e, 
-              ms.c[2:]::control, 
-              ms.d, 
-              false
+        SELECT false,
+               (array[row(row(lam.var, lam.body, ms.e),null)]::stack || ms.s)::stack, 
+               ms.e, 
+               ms.c[2:]::control, 
+               ms.d
         FROM machine AS ms,
             term AS t,
         LATERAL (SELECT (t.lam).*) AS lam(var, body)
@@ -113,11 +107,11 @@ $$
           UNION ALL
         
         --6. Handle function application
-        SELECT ms.s, 
-              ms.e, 
-              (array[row(app.arg,null), row(app.fun,null), row(null, 'apply')]::control || ms.c[2:])::control, 
-              ms.d, 
-              false
+        SELECT false,
+               ms.s, 
+               ms.e, 
+               (array[row(app.arg,null), row(app.fun,null), row(null, 'apply')]::control || ms.c[2:])::control, 
+               ms.d
         FROM machine AS ms,
             term AS t,
         LATERAL (SELECT (t.app).*) AS app(fun, arg)
@@ -126,13 +120,13 @@ $$
           UNION ALL
           
         --7. Apply function
-        SELECT array[]::stack, 
-              (SELECT new_env
+        SELECT false,
+               array[]::stack, 
+               (SELECT new_env
                 FROM (SELECT nextval('env_keys')::env) AS _(new_env),
                 LATERAL insertToHT(1, true, new_env, closure.v, arg, closure.e)),
-              array[row(closure.t,null)]::control, 
-              (array[row(ms.s[3:],ms.e,ms.c[2:])]::dump || ms.d)::dump, 
-              false
+               array[row(closure.t,null)]::control, 
+               (array[row(ms.s[3:],ms.e,ms.c[2:])]::dump || ms.d)::dump
         FROM machine AS ms, 
              LATERAL (SELECT ms.s[1].c.*) AS closure(v,t,e), 
              LATERAL (SELECT ms.s[2]) AS _(arg), 
@@ -146,10 +140,11 @@ $$
   SELECT r.s[1], 
          (SELECT count(*) - 3
           FROM r)
-  FROM r AS r(s,e,c,d,finished)
-  WHERE finished
+  FROM r
+  WHERE r.finished
 $$ LANGUAGE SQL VOLATILE;
 
+-- import terms from JSON representatin in to table 'terms'
 INSERT INTO root_terms (
   SELECT term_id, term
   FROM input_terms_secd AS _(set_id, term_id, t), load_term(t) AS __(term)

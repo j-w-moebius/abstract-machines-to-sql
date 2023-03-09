@@ -1,8 +1,18 @@
-DROP TYPE IF EXISTS term,var,primitive,env,closure,val,stack,directive,control,frame,dump,lam,app,rule,machine_state,env_entry CASCADE;
+DROP TYPE IF EXISTS term,var,primitive,env,closure,val,stack,directive,control,frame,dump,lam,app,machine_state,env_entry CASCADE;
 DROP TABLE IF EXISTS terms, root_terms;
 
 CREATE DOMAIN term AS integer;
 CREATE DOMAIN var  AS text;
+CREATE TYPE lam AS (ide var, body term);
+CREATE TYPE app AS (fun term, arg term);
+
+-- The self-referencing table terms holds all globally existing terms and subterms.
+-- invariant: After filling it with load_term, it doesn't change.
+CREATE TABLE terms (id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY, lit int, var var, lam lam, app app);
+
+-- holds references all terms in table terms that are root_terms
+CREATE TABLE root_terms(id integer PRIMARY KEY, term integer REFERENCES terms);
+
 CREATE TYPE primitive AS ENUM('apply');
 CREATE DOMAIN env AS int;
 CREATE TYPE closure AS (v var, t term, e env);    -- Closure = (Var, Term, Env)
@@ -13,33 +23,8 @@ CREATE DOMAIN control AS directive[];
 CREATE TYPE frame AS (s stack, e env, c control); -- Frame = (Stack, Env, Control)
 CREATE DOMAIN dump AS frame[]; 
 
-CREATE TYPE lam AS (ide var, body term);
-CREATE TYPE app AS (fun term, arg term);
-
--- An enum type for the rules which can be applied by the SECD machine.
--- Roughly corresponding to those presented by Danvy.
-CREATE TYPE rule AS ENUM('1', '2', '3', '4', '5', '6', '7');
-
 CREATE TYPE machine_state AS (s stack, e env, c control, d dump);
-
--- A single environment entry consists of:
--- id: The environment's identifier
--- name: The name of a variable
--- val: The value to which this variable is bound in environment id
 CREATE TYPE env_entry AS (id env, name var, val val, next env);
-
--- The self-referencing table terms holds all globally existing terms.
--- invariant: After filling it with load_term, it doesn't change.
-
--- The object language consits of terms, which are defined in the following way
--- (corresponding to lambda calculus extended with integer literals):
--- Term = Lit Int         (Integer literal)
---      | Var Text        (Variable)
---      | Lam Text Term   (Lambda abstraction with variable and body)
---      | App Term Term   (Application with fun and arg)
-CREATE TABLE terms (id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY, lit int, var var, lam lam, app app);
-
-CREATE TABLE root_terms(id integer PRIMARY KEY, term integer REFERENCES terms);
 
 DROP SEQUENCE IF EXISTS env_keys;
 CREATE SEQUENCE env_keys START 1;

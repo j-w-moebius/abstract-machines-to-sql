@@ -1,12 +1,9 @@
 \i Vanilla-PSQL/Krivine/definitions.sql
 
-DROP TYPE IF EXISTS result;
-CREATE TYPE result AS (c closure, n bigint);
 
 -- evaluate a lambda term t using a Krivine machine
-CREATE FUNCTION evaluate(t term) RETURNS result AS
+CREATE FUNCTION evaluate(t term) RETURNS TABLE (c closure, steps bigint, env_size bigint) AS
 $$
--- The recursive CTE r has the following columns:
 -- finished: indicates whether the computation is finished
 -- ms: a single (!) machine state: Only one row per iteration has ms != null
 -- e: environment entries (an arbitrary number of rows)
@@ -30,7 +27,7 @@ $$
 	        AND NOT r.finished
       ),
 
-      environment(id,c,n) AS (
+      environments(id,c,n) AS (
         SELECT (r.e).*
         FROM r
         WHERE r.e IS NOT NULL
@@ -44,18 +41,15 @@ $$
       ),
 
       -- compute next machine state
-      -- r: the applied rule, according to which the environment 
-      --    will be modified
-      -- id, c (optional): indicate (for rule 3) that a new 
-      --   environment has to be created by extending id with closure c
-      step(r,t,s,e,id,c) AS (
+      -- new_env_entry (optional): contains the binding an environment is to be extended by
+      step(finished,t,s,e,new_env_entry) AS (
 
       --1. Terminate computation
-      SELECT '1'::rule,
+      SELECT true,
              ms.t,
              ms.s,
              ms.e,
-             null::env, null::closure
+             null::env_entry
       FROM machine AS ms,
            term AS t
       WHERE t.lam IS NOT NULL
@@ -64,11 +58,11 @@ $$
         UNION ALL
         
       --2. Handle function application (Rule App)
-      SELECT '2'::rule,
+      SELECT false,
              fun,
              (array[row(arg, ms.e)]:: stack || ms.s)::stack,
              ms.e,
-             null, null
+             null
       FROM machine AS ms,
            term AS t,
       LATERAL (SELECT (t.app).*) AS _(fun, arg)
@@ -77,25 +71,26 @@ $$
         UNION ALL
         
       --3. Handle lambda abstraction (Rule Abs)
-      SELECT '3'::rule,
+      SELECT false,
              t.lam,
              ms.s[2:]::stack,
-             nextval('env_keys'),
-             ms.e, closure
+             new_env_id,
+             row(new_env_id, closure, ms.e)::env_entry
       FROM machine AS ms,
            term AS t,
-      LATERAL (SELECT ms.s[1]) AS _(closure)
+      LATERAL (SELECT ms.s[1]) AS _(closure),
+      (SELECT nextval('env_keys')::env) AS __(new_env_id)
       WHERE t.lam IS NOT NULL
         AND cardinality(ms.s) > 0
       
         UNION ALL
         
       --4. Handle De Bruijn index (Rule Zero / Succ combined)
-      SELECT '4'::rule,
+      SELECT false,
              e.t,
              ms.s,
              e.e,
-             null,null
+             null
       FROM machine AS ms,
            term AS t,
            LATERAL (
@@ -105,7 +100,7 @@ $$
                 UNION ALL
     
               SELECT e.n, s.n - 1
-              FROM s JOIN environment AS e
+              FROM s JOIN environments AS e
                    ON s.e = e.id
               WHERE s.n > 0
             )
@@ -114,7 +109,7 @@ $$
             WHERE s.n = 0
            ) AS _(new_env),
       LATERAL (SELECT (e.c).*
-               FROM environment AS e
+               FROM environments AS e
                WHERE e.id = new_env) AS e(t, e)
       WHERE t.i IS NOT NULL
       ),
@@ -123,25 +118,24 @@ $$
       new_envs(id,c,n) AS (
         -- use old env
         SELECT e.*
-        FROM step AS s, environment AS e
-        WHERE s.r >= '2' -- rules 2,3,4
+        FROM step AS s, environments AS e
         
           UNION ALL
 
          -- add new binding to new env
-        SELECT s.e, s.c, s.id
+        SELECT (s.new_env_entry).*
         FROM step AS s
-        WHERE s.r = '3'
+        WHERE s.new_env_entry IS NOT NULL
       )
 
-      SELECT s.r = '1',
+      SELECT s.finished,
              row(s.t, s.s, s.e)::machine_state,
              null::env_entry
       FROM step AS s
 
         UNION ALL
 
-      SELECT s.r = '1',
+      SELECT s.finished,
              null::machine_state,
              ne::env_entry
       FROM step AS s, new_envs AS ne
@@ -150,15 +144,17 @@ $$
   SELECT row((ms).t, (ms).e)::closure,
          (SELECT count(*) - 2 
           FROM r 
-          WHERE r.ms IS NOT NULL)
+          WHERE r.ms IS NOT NULL),
+         (SELECT count(*)
+          FROM r
+          WHERE r.e IS NOT NULL AND r.finished)
   FROM r AS _(finished, ms, _)
   WHERE finished
     AND ms IS NOT NULL
 $$ LANGUAGE SQL VOLATILE;
 
 
--- load input term from json file:
-
+-- import terms from JSON representatin in to table 'terms'
 INSERT INTO root_terms (
   SELECT term_id, term
   FROM input_terms_krivine AS _(set_id, term_id, t), load_term(t) AS __(term)

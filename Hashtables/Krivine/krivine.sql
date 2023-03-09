@@ -1,22 +1,18 @@
 \i Hashtables/Krivine/definitions.sql
 
-DROP TYPE IF EXISTS result CASCADE;
-CREATE TYPE result AS (c closure, n bigint);
-
 -- evaluate a lambda term t using a Krivine machine
-CREATE OR REPLACE FUNCTION evaluate(t term) RETURNS result AS
+CREATE OR REPLACE FUNCTION evaluate(t term) RETURNS TABLE (c closure, n bigint) AS
 $$
-  WITH RECURSIVE r(t,s,e,finished) AS (
+  WITH RECURSIVE r(finished,t,s,e) AS (
   
-    SELECT t, 
+    SELECT false,
+           t, 
            array[]::stack, 
-           nextval('env_keys')::env,
-           false
+           nextval('env_keys')::env
     
       UNION ALL
       
     (WITH
-      r AS (TABLE r),                     -- non-linear recursion hack
       machine(t,s,e) AS (
         SELECT r.t, r.s, r.e
         FROM r
@@ -25,17 +21,17 @@ $$
 
       term(i,lam,app) AS (
         SELECT t.i, t.lam, t.app
-        FROM r JOIN terms AS t
-          ON r.t = t.id
+        FROM machine AS ms JOIN terms AS t
+             ON ms.t = t.id
       ),
 
-      step(t,s,e,finished) AS (
+      step(finished,t,s,e) AS (
 
         --1. Terminate computation
-        SELECT ms.t,
+        SELECT true,
+               ms.t,
                ms.s,
-               ms.e,
-               true
+               ms.e
         FROM machine AS ms,
              term AS t
         WHERE t.lam IS NOT NULL
@@ -44,10 +40,10 @@ $$
           UNION ALL
         
         --2. Handle function application (Rule App)
-        SELECT fun,
+        SELECT false,
+               fun,
                (array[row(arg, ms.e)]:: stack || ms.s)::stack,
-               ms.e,
-               false
+               ms.e
         FROM machine AS ms,
              term AS t,
         LATERAL (SELECT (t.app).*) AS _(fun, arg)
@@ -56,12 +52,12 @@ $$
           UNION ALL
         
         --3. Handle lambda abstraction (Rule Abs)
-        SELECT t.lam,
+        SELECT false,
+               t.lam,
                ms.s[2:]::stack,
                (SELECT new_env
                 FROM (SELECT nextval('env_keys')::env) AS _(new_env), 
-                LATERAL insertToHT(1, true, new_env, closure, ms.e)),
-               false
+                LATERAL insertToHT(1, true, new_env, closure, ms.e))
         FROM machine AS ms,
              term AS t,
         LATERAL (SELECT ms.s[1]) AS _(closure)
@@ -71,10 +67,10 @@ $$
           UNION ALL
         
         --4. Handle De Bruijn index (Rule Zero / Succ combined)
-        SELECT e.t,
+        SELECT false,
+               e.t,
                ms.s,
-               e.e,
-               false
+               e.e
         FROM machine AS ms,
              term AS t,
         LATERAL (
@@ -101,15 +97,14 @@ $$
     FROM step AS s
     )
   )
-  SELECT row(t,e)::closure,
+  SELECT row(r.t,r.e)::closure,
          (SELECT count(*) - 2 
           FROM r)
-  FROM r AS _(t,_,e)
+  FROM r
   WHERE finished
 $$ LANGUAGE SQL VOLATILE;
 
--- load input term from json file:
-
+-- import terms from JSON representatin in to table 'terms'
 INSERT INTO root_terms (
   SELECT term_id, term
   FROM input_terms_krivine AS _(set_id, term_id, t), load_term(t) AS __(term)

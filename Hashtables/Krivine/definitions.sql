@@ -3,25 +3,20 @@ DROP TABLE IF EXISTS terms, root_terms;
 
 CREATE DOMAIN term AS integer;
 CREATE DOMAIN env AS integer;
-CREATE TYPE closure AS (t term, e env);    -- Closure = (Term, Env)
-CREATE DOMAIN stack AS closure[];
-
 CREATE TYPE app AS (fun term, arg term);
 
 -- The self-referencing table terms holds all globally existing terms.
 -- invariant: After filling it with load_term, it doesn't change.
-
--- Term = I Int           (De Bruijn Index)
---      | Lam Term        (Lambda with body)
---      | App Term Term   (Application with fun and arg)
-
 CREATE TABLE terms (id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY, i int, lam term, app app);
 
+-- holds references all terms in table terms that are root_terms
 CREATE TABLE root_terms(id integer PRIMARY KEY, term integer REFERENCES terms);
 
-ALTER TABLE terms
-  ADD FOREIGN KEY (lam) REFERENCES terms;
-  -- FOREIGN KEY for app.fun and app.arg?
+CREATE TYPE closure AS (t term, e env);    -- Closure = (Term, Env)
+CREATE DOMAIN stack AS closure[];
+
+DROP SEQUENCE IF EXISTS env_keys;
+CREATE SEQUENCE env_keys START 1;
 
 -- load a term from JSON into tabular representation in table terms
 CREATE FUNCTION load_term(t jsonb) RETURNS term AS
@@ -52,35 +47,6 @@ $$
   RETURNING id
 $$
 LANGUAGE SQL VOLATILE;
-
--- convert tabular representation of a term into JSON
-CREATE FUNCTION term_to_json(t term) RETURNS jsonb AS
-$$
-  SELECT r
-  FROM (SELECT terms.i, terms.lam, terms.app
-        FROM terms AS terms
-        WHERE terms.id = t) AS t(i,lam,app),
-  LATERAL (
-    
-    SELECT jsonb_build_object('i', i)
-    WHERE t.i IS NOT NULL
-
-      UNION ALL
-
-    SELECT jsonb_build_object('lam', term_to_json(t.lam))
-    WHERE t.lam IS NOT NULL
-    
-      UNION ALL
-
-    SELECT jsonb_build_object('app', jsonb_build_object('fun', term_to_json(fun), 'arg', term_to_json(arg)))
-    FROM (SELECT (t.app).*) AS _(fun, arg)
-    WHERE t.app IS NOT NULL
-  ) AS _(r)
-$$
-LANGUAGE SQL VOLATILE;
-
-DROP SEQUENCE IF EXISTS env_keys;
-CREATE SEQUENCE env_keys START 1;
 
 -- we use the PG Hashtable extension to model environments
 -- It has a key column (id) and two value columns

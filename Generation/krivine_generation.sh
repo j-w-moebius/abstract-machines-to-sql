@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# call with set_generation N MIN MAX
-# generate N terms in 'krivine.json' (N <= 100)
+# call with krivine_generation N MIN MAX
+# to generate N terms in 'krivine.json' (N <= 100)
 # the generated terms all take a number of steps to be evaluated that lies between MIN and MAX
 
 N=$1

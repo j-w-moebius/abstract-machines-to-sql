@@ -1,8 +1,18 @@
-DROP TYPE IF EXISTS term,var,primitive,env,closure,val,stack,directive,control,frame,dump,term_type,lam,app CASCADE;
+DROP TYPE IF EXISTS term,var,primitive,env,closure,val,stack,directive,control,frame,dump,lam,app CASCADE;
 DROP TABLE IF EXISTS terms, root_terms;
 
 CREATE DOMAIN term AS integer;
 CREATE DOMAIN var  AS text;
+CREATE TYPE lam AS (ide var, body term);
+CREATE TYPE app AS (fun term, arg term);
+
+-- The self-referencing table terms holds all globally existing terms and subterms.
+-- invariant: After filling it with load_term, it doesn't change.
+CREATE TABLE terms (id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY, lit int, var var, lam lam, app app);
+
+-- holds references all terms in table terms that are root_terms
+CREATE TABLE root_terms(id integer PRIMARY KEY, term integer REFERENCES terms);
+
 CREATE TYPE primitive AS ENUM('apply');
 CREATE DOMAIN env AS bigint;
 CREATE TYPE closure AS (v var, t term, e env);    -- Closure = (Var, Term, Env)
@@ -12,13 +22,6 @@ CREATE TYPE directive AS (t term, p primitive);   -- Directive = Term | Primitiv
 CREATE DOMAIN control AS directive[];
 CREATE TYPE frame AS (s stack, e env, c control); -- Frame = (Stack, Env, Control)
 CREATE DOMAIN dump AS frame[]; 
-
-CREATE TYPE lam AS (ide var, body term);
-CREATE TYPE app AS (fun term, arg term);
-
-CREATE TABLE terms (id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY, lit int, var var, lam lam, app app);
-
-CREATE TABLE root_terms(id integer PRIMARY KEY, term integer REFERENCES terms);
 
 DROP SEQUENCE IF EXISTS env_keys;
 CREATE SEQUENCE env_keys START 1;
