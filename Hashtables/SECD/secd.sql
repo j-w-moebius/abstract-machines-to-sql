@@ -139,7 +139,7 @@ $$
     )
   )
   SELECT r.s[1], 
-         (SELECT count(*) - 3
+         (SELECT count(*) - 2
           FROM r)
   FROM r
   WHERE r.finished
