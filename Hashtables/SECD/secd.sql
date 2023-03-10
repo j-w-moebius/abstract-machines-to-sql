@@ -50,6 +50,7 @@ $$
         LATERAL (SELECT ms.d[1].*) AS d(s,e,c)
         WHERE cardinality(ms.s) = 1 
           AND cardinality(ms.c) = 0
+          AND cardinality(ms.d) > 0
         
           UNION ALL
           

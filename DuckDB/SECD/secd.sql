@@ -79,6 +79,7 @@ CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE (
         FROM machine AS ms
         WHERE len(ms.s) = 1 
           AND len(ms.c) = 0
+          AND len(ms.d) > 0
         ), 
 
         three(r,s,e,c,d,id,name,val) AS (
