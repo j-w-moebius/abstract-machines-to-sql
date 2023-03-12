@@ -19,6 +19,7 @@ do
   Generation/generator
   let C=$(psql -qtA -p $PSQL_PORT -v i=$I -v n=$N -v min=$MIN -v max=$MAX -f Generation/secd_sieving.sql | tail -1)
   let I=$I+1
+  echo $C
 done
 
 psql -p $PSQL_PORT -c "\copy (SELECT t FROM input_terms_secd AS _(set_id, term_id, t) ORDER BY set_id, term_id LIMIT $N) TO 'secd.json';"
