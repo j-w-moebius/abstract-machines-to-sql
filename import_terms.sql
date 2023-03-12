@@ -65,3 +65,23 @@ INSERT INTO input_terms_krivine(set_id, term_id, t) (
 
 DELETE FROM raw;
 ALTER TABLE raw ALTER term_id RESTART;
+
+\copy raw(t) FROM 'term-sets/4/secd.json';
+
+INSERT INTO input_terms_secd(set_id, term_id, t) (
+    SELECT 4, id, t
+    FROM raw AS _(id, t)
+);
+
+DELETE FROM raw;
+ALTER TABLE raw ALTER term_id RESTART;
+
+\copy raw(t) FROM 'term-sets/4/krivine.json';
+
+INSERT INTO input_terms_krivine(set_id, term_id, t) (
+    SELECT 4, id, t
+    FROM raw AS _(id, t)
+);
+
+DELETE FROM raw;
+ALTER TABLE raw ALTER term_id RESTART;
