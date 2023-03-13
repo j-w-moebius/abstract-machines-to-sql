@@ -16,7 +16,7 @@ I=1
 C=0
 while [ $C -lt $N ]
 do
-  Generation/generator_b
+  Generation/generator
   let C=$(psql -qtA -p $PSQL_PORT -v i=$I -v n=$N -v min=$MIN -v max=$MAX -f Generation/krivine_sieving.sql | tail -1)
   let I=$I+1
   echo $C
