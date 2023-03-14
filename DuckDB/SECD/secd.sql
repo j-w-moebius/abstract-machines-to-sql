@@ -49,14 +49,12 @@ CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE (
       ),
 
       -- compute next machine state
-      -- r: the applied rule, according to which the environment 
-      --    will be modified
       -- id, name, val (optional): indicate (for rule 7) that a new 
       --   environment has to be created by extending id with (name -> val)
-      step(r,s,e,c,d,id,name,val) AS (
-        WITH one(r,s,e,c,d,id,name,val) AS (
+      step(finished,s,e,c,d,id,name,val) AS (
+        WITH one(finished,s,e,c,d,id,name,val) AS (
         --1. Terminate computation
-        SELECT '1'::rule,
+        SELECT true,
                ms.s, 
                ms.e, 
                ms.c, 
@@ -68,9 +66,9 @@ CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE (
           AND len(ms.d) = 0
         ),
 
-        two(r,s,e,c,d,id,name,val) AS (
+        two(finished,s,e,c,d,id,name,val) AS (
         --2. Return from function call
-        SELECT '2'::rule,
+        SELECT false,
               ms.s || ms.d[1].s, 
               ms.d[1].e, 
               ms.d[1].c, 
@@ -82,9 +80,9 @@ CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE (
           AND len(ms.d) > 0
         ), 
 
-        three(r,s,e,c,d,id,name,val) AS (
+        three(finished,s,e,c,d,id,name,val) AS (
         --3. Push literal onto stack
-        SELECT '3'::rule,
+        SELECT false,
               array_push_front(ms.s, t.lit),
               ms.e, 
               ms.c[2:], 
@@ -95,9 +93,9 @@ CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE (
         WHERE union_tag(t) = 'lit'
         ),
 
-        four(r,s,e,c,d,id,name,val) AS (
+        four(finished,s,e,c,d,id,name,val) AS (
         --4. Push variable value onto stack
-        SELECT '4'::rule,
+        SELECT false,
                array_push_front(ms.s, (SELECT e.val
                  FROM environment AS e
                  WHERE e.id = ms.e AND e.name = t.var
@@ -111,9 +109,9 @@ CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE (
         WHERE union_tag(t) = 'var'
         ),
 
-        five(r,s,e,c,d,id,name,val) AS (
+        five(finished,s,e,c,d,id,name,val) AS (
         --5. Push lambda abstraction onto stack as closure
-        SELECT '5'::rule,
+        SELECT false,
               array_push_front(ms.s, {'v': t.lam.ide, 
                                  't': t.lam.body, 
                                  'e': ms.e}),
@@ -126,9 +124,9 @@ CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE (
         WHERE union_tag(t) = 'lam'
         ),
         
-        six(r,s,e,c,d,id,name,val) AS (
+        six(finished,s,e,c,d,id,name,val) AS (
         --6. Handle function application
-        SELECT '6'::rule,
+        SELECT false,
               ms.s, 
               ms.e, 
               array_push_front(array_push_front(array_push_front(ms.c[2:], 'apply'::primitive), t.app.fun), t.app.arg), 
@@ -139,9 +137,9 @@ CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE (
         WHERE union_tag(t) = 'app'
         ), 
 
-        seven(r,s,e,c,d,id,name,val) AS (
+        seven(finished,s,e,c,d,id,name,val) AS (
         --7. Apply function
-        SELECT '7'::rule,
+        SELECT false,
               [], 
               nextval('env_keys'), 
               [ms.s[1].c.t :: UNION(t integer, p primitive)], 
@@ -156,7 +154,7 @@ CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE (
 
         -- the following cluster performs the union of the CTEs one, two, three, four, five, six, seven
         -- its necessity arises from duckdb forbidding the use of UNIONs (and full outer joins) in recursive CTEs
-        SELECT COALESCE(one.r, COALESCE(two.r, COALESCE(three.r, COALESCE(four.r, COALESCE(five.r, COALESCE(six.r, seven.r)))))),
+        SELECT COALESCE(one.finished, COALESCE(two.finished, COALESCE(three.finished, COALESCE(four.finished, COALESCE(five.finished, COALESCE(six.finished, seven.finished)))))),
                COALESCE(one.s, COALESCE(two.s, COALESCE(three.s, COALESCE(four.s, COALESCE(five.s, COALESCE(six.s, seven.s)))))),
                COALESCE(one.e, COALESCE(two.e, COALESCE(three.e, COALESCE(four.e, COALESCE(five.e, COALESCE(six.e, seven.e)))))),
                COALESCE(one.c, COALESCE(two.c, COALESCE(three.c, COALESCE(four.c, COALESCE(five.c, COALESCE(six.c, seven.c)))))),
@@ -165,34 +163,34 @@ CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE (
                COALESCE(one.name, COALESCE(two.name, COALESCE(three.name, COALESCE(four.name, COALESCE(five.name, COALESCE(six.name, seven.name)))))),
                COALESCE(one.val, COALESCE(two.val, COALESCE(three.val, COALESCE(four.val, COALESCE(five.val, COALESCE(six.val, seven.val))))))
 
-        FROM (SELECT (SELECT r FROM one), (SELECT s FROM one), (SELECT e FROM one), (SELECT c FROM one), 
+        FROM (SELECT (SELECT finished FROM one), (SELECT s FROM one), (SELECT e FROM one), (SELECT c FROM one), 
              (SELECT d FROM one), (SELECT id FROM one), (SELECT name FROM one), (SELECT val FROM one)) 
-               AS one(r,s,e,c,d,id,name,val),
-             (SELECT (SELECT r FROM two), (SELECT s FROM two), (SELECT e FROM two), (SELECT c FROM two), 
+               AS one(finished,s,e,c,d,id,name,val),
+             (SELECT (SELECT finished FROM two), (SELECT s FROM two), (SELECT e FROM two), (SELECT c FROM two), 
              (SELECT d FROM two), (SELECT id FROM two), (SELECT name FROM two), (SELECT val FROM two)) 
-               AS two(r,s,e,c,d,id,name,val),
-             (SELECT (SELECT r FROM three), (SELECT s FROM three), (SELECT e FROM three), (SELECT c FROM three), 
+               AS two(finished,s,e,c,d,id,name,val),
+             (SELECT (SELECT finished FROM three), (SELECT s FROM three), (SELECT e FROM three), (SELECT c FROM three), 
              (SELECT d FROM three), (SELECT id FROM three), (SELECT name FROM three), (SELECT val FROM three)) 
-               AS three(r,s,e,c,d,id,name,val),
-             (SELECT (SELECT r FROM four), (SELECT s FROM four), (SELECT e FROM four), (SELECT c FROM four), 
+               AS three(finished,s,e,c,d,id,name,val),
+             (SELECT (SELECT finished FROM four), (SELECT s FROM four), (SELECT e FROM four), (SELECT c FROM four), 
              (SELECT d FROM four), (SELECT id FROM four), (SELECT name FROM four), (SELECT val FROM four)) 
-               AS four(r,s,e,c,d,id,name,val),
-             (SELECT (SELECT r FROM five), (SELECT s FROM five), (SELECT e FROM five), (SELECT c FROM five), 
+               AS four(finished,s,e,c,d,id,name,val),
+             (SELECT (SELECT finished FROM five), (SELECT s FROM five), (SELECT e FROM five), (SELECT c FROM five), 
              (SELECT d FROM five), (SELECT id FROM five), (SELECT name FROM five), (SELECT val FROM five)) 
-               AS five(r,s,e,c,d,id,name,val),
-             (SELECT (SELECT r FROM six), (SELECT s FROM six), (SELECT e FROM six), (SELECT c FROM six), 
+               AS five(finished,s,e,c,d,id,name,val),
+             (SELECT (SELECT finished FROM six), (SELECT s FROM six), (SELECT e FROM six), (SELECT c FROM six), 
              (SELECT d FROM six), (SELECT id FROM six), (SELECT name FROM six), (SELECT val FROM six)) 
-               AS six(r,s,e,c,d,id,name,val),
-             (SELECT (SELECT r FROM seven), (SELECT s FROM seven), (SELECT e FROM seven), (SELECT c FROM seven), 
+               AS six(finished,s,e,c,d,id,name,val),
+             (SELECT (SELECT finished FROM seven), (SELECT s FROM seven), (SELECT e FROM seven), (SELECT c FROM seven), 
              (SELECT d FROM seven), (SELECT id FROM seven), (SELECT name FROM seven), (SELECT val FROM seven)) 
-               AS seven(r,s,e,c,d,id,name,val)
+               AS seven(finished,s,e,c,d,id,name,val)
       ),
 
       --update the environments according to the rule applied by 'step'
       --each possible union_id corresponds to a UNION block in the PSQL query
       new_envs(id,name,val) AS (
         SELECT DISTINCT CASE union_id WHEN 1 THEN e.id
-                                      WHEN 2 THEN currval('env_keys')   -- using s.e lead to straneg behavior
+                                      WHEN 2 THEN currval('env_keys')   -- using s.e lead to strange behavior
                                       ELSE currval('env_keys') END,
                         CASE union_id WHEN 1 THEN e.name
                                       WHEN 2 THEN s.name
@@ -201,19 +199,19 @@ CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE (
                                       WHEN 2 THEN s.val
                                       ELSE e.val END
         FROM step AS s LEFT OUTER JOIN environment AS e ON true, (VALUES (1), (2), (3)) AS _(union_id)
-        WHERE (union_id = 1 AND s.r >= '2' AND e.id NOT NULL) 
-          OR (union_id = 2 AND s.r = '7')
-          OR (union_id = 3 AND s.r = '7' AND e.id = s.id AND e.name <> s.name)
+        WHERE (union_id = 1 AND e.id NOT NULL) 
+          OR (union_id = 2 AND s.id NOT NULL)
+          OR (union_id = 3 AND s.id NOT NULL AND e.id = s.id AND e.name <> s.name)
       )
 
-      SELECT DISTINCT s.r = '1',
+      SELECT DISTINCT s.finished,
                       CASE WHEN union_id = 1 THEN {'s': s.s, 'e': s.e, 'c': s.c, 'd': s.d}
                                              ELSE null END,
                       CASE WHEN union_id = 1 THEN null
                                              ELSE {'id': e.id, 'name': e.name, 'val': e.val} END
       FROM step AS s LEFT OUTER JOIN new_envs AS e ON true,
            (VALUES (1), (2)) AS _(union_id)
-      WHERE (union_id = 1 AND s.r NOT NULL)
+      WHERE (union_id = 1 AND s.finished NOT NULL)
          OR (union_id = 2 AND e.id IS NOT NULL)
     )
   )
