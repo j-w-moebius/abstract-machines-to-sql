@@ -49,10 +49,10 @@ $$
               ON ms.t = t.id
         ),
 
-        step(r,t,s,e,id,c_t,c_e) AS (
+        step(finished,t,s,e,id,c_t,c_e) AS (
 
         --1. Terminate computation
-        SELECT 1,
+        SELECT true,
               ms.t,
               ms.s,
               ms.e,
@@ -65,7 +65,7 @@ $$
           UNION ALL
           
         --2. Handle function application (Rule App)
-        SELECT 2,
+        SELECT false,
               t.app_fun,
               array[t.app_arg, ms.e] || ms.s,
               ms.e,
@@ -77,7 +77,7 @@ $$
           UNION ALL
           
         --3. Handle lambda abstraction (Rule Abs)
-        SELECT 3,
+        SELECT false,
               t.lam,
               ms.s[3:],
               k,
@@ -92,7 +92,7 @@ $$
           UNION ALL
           
         --4. Handle De Bruijn index (Rule Zero / Succ combined)
-        SELECT 4,
+        SELECT false,
               e.t,
               ms.s,
               e.e,
@@ -125,25 +125,24 @@ $$
           -- use old env
           SELECT e.*
           FROM step AS s, environment AS e
-          WHERE s.r >= 2 -- rules 2,3,4
           
             UNION ALL
 
           -- add new binding to new env
           SELECT s.e, s.c_t, s.c_e, s.id
           FROM step AS s
-          WHERE s.r = 3
+          WHERE s.c_t IS NOT NULL
         )
 
-        SELECT s.r = 1,
+        SELECT s.finished,
               s.t, s.s, s.e,
               null,null,null,null,
-              CASE WHEN s.r = 3 THEN k+1 ELSE k END
+              CASE WHEN (s.c_t IS NULL) THEN k ELSE k+1 END
         FROM env_key AS _(k), step AS s
 
           UNION ALL
 
-        SELECT s.r = '1',
+        SELECT s.finished,
               null,null,null,
               ne.*,
               null
