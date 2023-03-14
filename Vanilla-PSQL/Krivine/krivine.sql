@@ -116,7 +116,7 @@ $$
 
       --update the environments according to the rule applied by 'step'
       new_envs(id,c,n) AS (
-        -- use old env
+        -- copy old envs
         SELECT e.*
         FROM step AS s, environments AS e
         

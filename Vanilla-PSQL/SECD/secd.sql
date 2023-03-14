@@ -161,7 +161,7 @@ $$
 
       --update the environments
       new_envs(id,name,val,next) AS (
-        -- copy old env
+        -- copy old envs
         SELECT e.*
         FROM step AS s, environments AS e
         
