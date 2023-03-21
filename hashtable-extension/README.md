@@ -1,4 +1,5 @@
 # PG Hashtable
+Written by Denis Hirn.
 ## Setup
 When postgres is installed manually, run
 ```bash
