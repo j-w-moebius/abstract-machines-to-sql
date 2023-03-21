@@ -27,35 +27,23 @@
 (λx.x) 42   --> 42
 
 {"app": {"fun": {"lam": {"var": "x", "body": {"var": "x"}}}, "arg": {"lit": 42}}}
+     
 
-6. add
-
-5 + 3 --> 8
-
-{"add": {"left": {"lit": 5}, "right": {"lit": 3}}}
-
-
-7. complex (with addition):
-
-((λx.(λy.(x + y)) 1) 2)  --> 3
-
-{"app": {"fun": {"app": {"fun": {"lam": {"var": "x", "body": {"lam": {"var": "y", "body": {"add": {"left": {"var": "x"}, "right": {"var": "y"}}}}}}}, "arg": {"lit": 1}}}, "arg": {"lit": 2}}}      
-
-8.1 De Bruijn:
+6.1 De Bruijn:
 
 (λ 0 0) (λ 0)  --> λ 0 
 
 {"app": {"fun": {"lam": {"app": {"fun": {"i": 0}, "arg": {"i": 0}}}}, "arg": {"lam": {"i": 0}}}}                           
 
 
-8.2 De Bruijn:
+6.2 De Bruijn:
 
 ((λx.λy.x) (λx.λy.x)) (λx.x) --> (λx.λy.x)
-((λ (λ 1)) (λ (λ 1))) (λ 0) -> (λ (λ 1 1))
+((λ (λ 1)) (λ (λ 1))) (λ 0) --> (λ (λ 1 1))
 
 {"app": {"fun": {"app": {"fun": {"lam": {"lam": {"i": 1}}}, "arg": {"lam": {"lam": {"i": 1}}}}}, "arg": {"lam": {"i": 0}}}}
 
-(named)
+Identifiers:
 {"app": {"fun": {"app": {"fun": {"lam": {"var": "x", "body": {"lam": {"var": "y", "body": {"var": "x"}}}}}, "arg": {"lam": {"var": "x", "body": {"lam": {"var": "y", "body": {"var": "x"}}}}}}}}, "arg": {"lam": {"var": "x", "body": {"var": "x"}}}}}
 
 

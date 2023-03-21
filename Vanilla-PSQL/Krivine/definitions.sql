@@ -16,7 +16,7 @@ CREATE TYPE closure AS (t term, e env);    -- Closure = (Term, Env)
 CREATE DOMAIN stack AS closure[];
 
 CREATE TYPE machine_state AS (t term, s stack, e env);
-CREATE TYPE env_entry AS (id env, c closure, next env);
+CREATE TYPE env_entry AS (id env, c closure, parent env);
 
 DROP SEQUENCE IF EXISTS env_keys;
 CREATE SEQUENCE env_keys START 1;
@@ -50,3 +50,11 @@ $$
   RETURNING id
 $$
 LANGUAGE SQL VOLATILE;
+
+
+-- import terms from JSON representatin in to table 'terms'
+INSERT INTO root_terms (
+  SELECT term_id, term
+  FROM input_terms_krivine AS _(set_id, term_id, t), load_term(t) AS __(term)
+  WHERE set_id = :term_set
+);

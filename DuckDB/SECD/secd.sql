@@ -1,7 +1,7 @@
 .read DuckDB/SECD/definitions.sql
 
 -- evaluate a lambda term t using an SECD machine
-CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE (
+CREATE OR REPLACE FUNCTION evaluate(t_init) AS (
 
 -- The recursive CTE r has the following columns:
 -- finished: indicates whether the computation is finished
@@ -200,8 +200,8 @@ CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE (
                                       ELSE e.val END
         FROM step AS s LEFT OUTER JOIN environment AS e ON true, (VALUES (1), (2), (3)) AS _(union_id)
         WHERE (union_id = 1 AND e.id NOT NULL) 
-          OR (union_id = 2 AND s.new_env_entry NOT NULL)
-          OR (union_id = 3 AND s.new_env_entry NOT NULL AND e.id = s.new_env_entry.id AND e.name <> s.new_env_entry.name)
+           OR (union_id = 2 AND s.new_env_entry NOT NULL)
+           OR (union_id = 3 AND s.new_env_entry NOT NULL AND e.id = s.new_env_entry.id AND e.name <> s.new_env_entry.name)
       )
 
       SELECT DISTINCT s.finished,
@@ -215,43 +215,8 @@ CREATE OR REPLACE FUNCTION evaluate(t_init) AS TABLE (
          OR (union_id = 2 AND e.id IS NOT NULL)
     )
   )
-  SELECT r.ms.s[1], 
-         (SELECT count(*) - 2
-          FROM r
-          WHERE r.ms IS NOT NULL)
+  SELECT r.ms.s[1]
   FROM r
   WHERE r.finished
     AND r.ms IS NOT NULL
 );
-
--- import raw terms from CSV file
-COPY raw FROM 'terms.csv';
-
--- copy data from table 'raw' into table 'terms', converting it to correct types
--- separate INSERT statements avoid cumbersome casts
-
-INSERT INTO terms (
-  SELECT id, r.lit
-  FROM raw AS r
-  WHERE r.lit IS NOT NULL
-);
-
-INSERT INTO terms (
-  SELECT id, r.var
-  FROM raw AS r
-  WHERE r.var IS NOT NULL
-);
-
-INSERT INTO terms (
-  SELECT id, union_value(lam := {'ide': r.lam_ide, 'body': r.lam_body})
-  FROM raw AS r
-  WHERE r.lam_ide IS NOT NULL
-);
-
-INSERT INTO terms (
-  SELECT id, union_value(app := {'fun': r.app_fun, 'arg': r.app_arg})
-  FROM raw AS r
-  WHERE r.app_fun IS NOT NULL
-);
-
-COPY root_terms FROM 'root_terms.csv';

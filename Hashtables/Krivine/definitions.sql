@@ -49,18 +49,24 @@ $$
 LANGUAGE SQL VOLATILE;
 
 -- we use the PG Hashtable extension to model environments
--- It has a key column (id) and two value columns
--- holding the variable's associated closure and a pointer to the next closure 
--- A table row corresponds to a closure. An environment can be seen as a stack of closures.
--- Hence, linking multiple closures to environments is done via the self-reference in column 'next'.
+-- The environment HT has one key columns (environment_id) and two value columns
+-- holding the associated closure and a pointer to the parent environment
 
 SELECT prepareHT(1, 1, null::env, null :: closure, null :: env);
 
 -- only for debugging
-CREATE FUNCTION display_envs() RETURNS TABLE (env env, c closure, next env) AS 
+CREATE FUNCTION display_envs() RETURNS TABLE (env env, c closure, parent env) AS 
 $$
   SELECT * 
-  FROM scanHT(1) AS _(env env, c closure, next env)
+  FROM scanHT(1) AS _(env env, c closure, parent env)
   ORDER BY env
 $$
 LANGUAGE SQL VOLATILE;
+
+
+-- import terms from JSON representatin in to table 'terms'
+INSERT INTO root_terms (
+  SELECT term_id, term
+  FROM input_terms_krivine AS _(set_id, term_id, t), load_term(t) AS __(term)
+  WHERE set_id = :term_set
+);

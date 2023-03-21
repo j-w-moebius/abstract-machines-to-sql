@@ -5,10 +5,9 @@ CREATE FUNCTION evaluate(t integer) RETURNS integer[] AS
 $$
   let term_res: integer;
   let env_res: integer;
-  let n_res: integer;
-  SELECT res.ms_t AS term, res.ms_e AS env, res.n AS n
+  SELECT res.ms_t AS term, res.ms_e AS env
   FROM (
-    WITH RECURSIVE r(finished, ms_t, ms_s, ms_e, e_id, e_c_t, e_c_e, e_n, env_key) AS (
+    WITH RECURSIVE r(finished, ms_t, ms_s, ms_e, e_id, e_c_t, e_c_e, e_p, env_key) AS (
 
       SELECT 
         false,
@@ -30,8 +29,8 @@ $$
             AND NOT r.finished
         ),
 
-        environment(id,c_t,c_e,n) AS (
-          SELECT r.e_id, r.e_c_t, r.e_c_e, r.e_n
+        environment(id,c_t,c_e,p) AS (
+          SELECT r.e_id, r.e_c_t, r.e_c_e, r.e_p
           FROM r
           WHERE r.e_id IS NOT NULL
             AND NOT r.finished
@@ -105,7 +104,7 @@ $$
 
                   UNION ALL
       
-                SELECT e.n, s.n - 1
+                SELECT e.p, s.n - 1
                 FROM s JOIN environment AS e
                     ON s.e = e.id
                 WHERE s.n > 0
@@ -121,7 +120,7 @@ $$
         ),
 
         --update the environments according to the rule applied by 'step'
-        new_envs(id,c_t,c_e,n) AS (
+        new_envs(id,c_t,c_e,p) AS (
           -- use old env
           SELECT e.*
           FROM step AS s, environment AS e
@@ -149,20 +148,13 @@ $$
         FROM step AS s, new_envs AS ne
       )
     )
-    SELECT r.ms_t, r.ms_e,
-          (SELECT count(*) - 2
-            FROM r 
-            WHERE r.ms_t IS NOT NULL) AS n
+    SELECT r.ms_t, r.ms_e
     FROM r
     WHERE finished
     AND ms_t IS NOT NULL
   ) AS res {
       term_res = term;
       env_res = env;
-      n_res = n;
     }
-  RETURN array[term_res, env_res, n_res];
+  RETURN array[term_res, env_res];
 $$ LANGUAGE 'umbrascript';
-
-SELECT id, evaluate(t)
-FROM root_terms AS _(id,t);

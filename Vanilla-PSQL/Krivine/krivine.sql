@@ -2,7 +2,7 @@
 
 
 -- evaluate a lambda term t using a Krivine machine
-CREATE FUNCTION evaluate(t term) RETURNS TABLE (c closure, steps bigint, env_size bigint) AS
+CREATE FUNCTION evaluate(t term) RETURNS closure AS
 $$
 -- finished: indicates whether the computation is finished
 -- ms: a single (!) machine state: Only one row per iteration has ms != null
@@ -27,7 +27,7 @@ $$
 	        AND NOT r.finished
       ),
 
-      environments(id,c,n) AS (
+      environments(id,c,parent) AS (
         SELECT (r.e).*
         FROM r
         WHERE r.e IS NOT NULL
@@ -94,12 +94,13 @@ $$
       FROM machine AS ms,
            term AS t,
            LATERAL (
+            -- get the t.i+1-th closure from the environment
             WITH RECURSIVE s(e, n) AS (
               SELECT ms.e, t.i
 
                 UNION ALL
     
-              SELECT e.n, s.n - 1
+              SELECT e.parent, s.n - 1
               FROM s JOIN environments AS e
                    ON s.e = e.id
               WHERE s.n > 0
@@ -141,22 +142,8 @@ $$
       FROM step AS s, new_envs AS ne
     )
   )
-  SELECT row((ms).t, (ms).e)::closure,
-         (SELECT count(*) - 2 
-          FROM r 
-          WHERE r.ms IS NOT NULL),
-         (SELECT count(*)
-          FROM r
-          WHERE r.e IS NOT NULL AND r.finished)
+  SELECT row((ms).t, (ms).e)::closure
   FROM r AS _(finished, ms, _)
   WHERE finished
     AND ms IS NOT NULL
 $$ LANGUAGE SQL VOLATILE;
-
-
--- import terms from JSON representatin in to table 'terms'
-INSERT INTO root_terms (
-  SELECT term_id, term
-  FROM input_terms_krivine AS _(set_id, term_id, t), load_term(t) AS __(term)
-  WHERE set_id = :term_set
-);

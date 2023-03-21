@@ -1,7 +1,7 @@
 test*
 /hashtable-extension/**
 *.csv
-duckdb_commands.sql
+DuckDB/evaluation_queries.sql
 out*
 duckdb_cli
 Generation/secd_terms.json

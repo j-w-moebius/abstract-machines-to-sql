@@ -1,7 +1,7 @@
 \i Vanilla-PSQL/SECD/definitions.sql
 
 -- evaluate a lambda term t using an SECD machine
-CREATE OR REPLACE FUNCTION evaluate(t term) RETURNS TABLE (v val, steps bigint, env_size bigint) AS
+CREATE OR REPLACE FUNCTION evaluate(t term) RETURNS val AS
 $$
 -- finished: indicates whether the computation is finished
 -- ms: a single (!) machine state: Only one row per iteration has ms != null
@@ -27,7 +27,7 @@ $$
 	        AND NOT r.finished
       ),
 
-      environments(id,name,val,next) AS (
+      environments(id,name,val,parent) AS (
         SELECT (r.e).*
         FROM r
         WHERE r.e IS NOT NULL
@@ -95,17 +95,17 @@ $$
         FROM machine AS ms,
              term AS t,
              LATERAL (
-              -- traverse environment stack until needed variable is found for the first time
-              WITH RECURSIVE s(e,name,val) AS (
-                SELECT e.next, e.name, e.val
+              -- traverse environment tree until needed variable is found for the first time
+              WITH RECURSIVE s(parent,name,val) AS (
+                SELECT e.parent, e.name, e.val
                 FROM environments AS e
                 WHERE ms.e = e.id
                   
                   UNION ALL
 
-                SELECT e.next, e.name, e.val
+                SELECT e.parent, e.name, e.val
                 FROM s JOIN environments AS e
-                     ON s.e = e.id
+                     ON s.parent = e.id
                 WHERE s.name <> t.var
               )
               SELECT s.val
@@ -160,7 +160,7 @@ $$
       ),
 
       --update the environments
-      new_envs(id,name,val,next) AS (
+      new_envs(id,name,val,parent) AS (
         -- copy old envs
         SELECT e.*
         FROM step AS s, environments AS e
@@ -186,21 +186,8 @@ $$
       FROM step AS s, new_envs AS ne
     )
   )
-  SELECT (r.ms).s[1], 
-         (SELECT count(*) - 2
-           FROM r
-		       WHERE r.ms IS NOT NULL),
-         (SELECT count(*)
-          FROM r
-          WHERE r.e IS NOT NULL AND r.finished)
+  SELECT (r.ms).s[1]
   FROM r
   WHERE r.finished 
     AND r.ms IS NOT NULL
 $$ LANGUAGE SQL VOLATILE;
-
--- import terms from JSON representatin in to table 'terms'
-INSERT INTO root_terms (
-  SELECT term_id,term
-  FROM input_terms_secd AS _(set_id,term_id,t), load_term(t) AS __(term)
-  WHERE set_id = :term_set
-);

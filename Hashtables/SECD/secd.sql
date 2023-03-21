@@ -1,7 +1,7 @@
 \i Hashtables/SECD/definitions.sql
 
 -- evaluate a lambda term t using an SECD machine
-CREATE OR REPLACE FUNCTION evaluate(t term) RETURNS TABLE (v val, steps bigint) AS
+CREATE OR REPLACE FUNCTION evaluate(t term) RETURNS val AS
 $$
   WITH RECURSIVE r(finished,s,e,c,d) AS (
   
@@ -75,15 +75,16 @@ $$
         FROM machine AS ms,
             term AS t,
         LATERAL (
-          WITH RECURSIVE s(e,name,val) AS (
-            SELECT e.next, e.name, e.v
-            FROM lookupHT(1, false, ms.e) AS e(_ env, name var, v val, next env)
+          WITH RECURSIVE s(parent,name,val) AS (
+            -- traverse environment tree until needed variable is found for the first time
+            SELECT e.parent, e.name, e.v
+            FROM lookupHT(1, false, ms.e) AS e(_ env, name var, v val, parent env)
               
               UNION ALL
             
-            SELECT e.next, e.name, e.v
+            SELECT e.parent, e.name, e.v
             FROM s, 
-            LATERAL lookupHT(1, false, s.e) AS e(_ env, name var, v val, next env)
+            LATERAL lookupHT(1, false, s.parent) AS e(_ env, name var, v val, parent env)
             WHERE s.name <> t.var
           )
           SELECT s.val
@@ -138,16 +139,7 @@ $$
       FROM step AS s
     )
   )
-  SELECT r.s[1], 
-         (SELECT count(*) - 2
-          FROM r)
+  SELECT r.s[1]
   FROM r
   WHERE r.finished
 $$ LANGUAGE SQL VOLATILE;
-
--- import terms from JSON representatin in to table 'terms'
-INSERT INTO root_terms (
-  SELECT term_id, term
-  FROM input_terms_secd AS _(set_id, term_id, t), load_term(t) AS __(term)
-  WHERE set_id = :term_set
-);

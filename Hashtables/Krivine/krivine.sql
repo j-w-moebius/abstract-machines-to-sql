@@ -1,7 +1,7 @@
 \i Hashtables/Krivine/definitions.sql
 
 -- evaluate a lambda term t using a Krivine machine
-CREATE OR REPLACE FUNCTION evaluate(t term) RETURNS TABLE (c closure, n bigint) AS
+CREATE OR REPLACE FUNCTION evaluate(t term) RETURNS closure AS
 $$
   WITH RECURSIVE r(finished,t,s,e) AS (
   
@@ -74,14 +74,15 @@ $$
         FROM machine AS ms,
              term AS t,
         LATERAL (
+          -- get the t.i+1-th closure from the environment
           WITH RECURSIVE s(e, n) AS (
             SELECT ms.e, t.i
 
               UNION ALL
     
-            SELECT next_env, s.n - 1
+            SELECT parent, s.n - 1
             FROM s,
-            LATERAL lookupHT(1, false, s.e) AS _(_ env, __ closure, next_env env)
+            LATERAL lookupHT(1, false, s.e) AS _(_ env, __ closure, parent env)
             WHERE s.n > 0
           )
           SELECT s.e
@@ -97,16 +98,7 @@ $$
     FROM step AS s
     )
   )
-  SELECT row(r.t,r.e)::closure,
-         (SELECT count(*) - 2 
-          FROM r)
+  SELECT row(r.t,r.e)::closure
   FROM r
   WHERE finished
 $$ LANGUAGE SQL VOLATILE;
-
--- import terms from JSON representatin in to table 'terms'
-INSERT INTO root_terms (
-  SELECT term_id, term
-  FROM input_terms_krivine AS _(set_id, term_id, t), load_term(t) AS __(term)
-  WHERE set_id = :term_set
-);

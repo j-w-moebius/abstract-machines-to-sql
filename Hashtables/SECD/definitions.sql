@@ -63,14 +63,22 @@ LANGUAGE SQL VOLATILE;
 
 -- we use the PG Hashtable extension to model environments
 -- The environment HT has one key columns (environment_id) and three value columns
--- holding the variable's name, its value and a pointer to the next environment row
+-- holding the variable's name, its value and a pointer to the parent environment
 SELECT prepareHT(1, 1, null::env, null :: var, null :: val, null :: env);
 
 -- only for debugging
-CREATE FUNCTION display_envs() RETURNS TABLE (env env, ide var, val val, next env) AS 
+CREATE FUNCTION display_envs() RETURNS TABLE (env env, ide var, val val, parent env) AS 
 $$
   SELECT * 
-  FROM scanHT(1) AS _(env env, ide var, val val, next env)
+  FROM scanHT(1) AS _(env env, ide var, val val, parent env)
   ORDER BY env, ide
 $$
 LANGUAGE SQL VOLATILE;
+
+
+-- import terms from JSON representatin in to table 'terms'
+INSERT INTO root_terms (
+  SELECT term_id, term
+  FROM input_terms_secd AS _(set_id, term_id, t), load_term(t) AS __(term)
+  WHERE set_id = :term_set
+);

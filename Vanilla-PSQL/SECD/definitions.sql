@@ -24,7 +24,7 @@ CREATE TYPE frame AS (s stack, e env, c control); -- Frame = (Stack, Env, Contro
 CREATE DOMAIN dump AS frame[]; 
 
 CREATE TYPE machine_state AS (s stack, e env, c control, d dump);
-CREATE TYPE env_entry AS (id env, name var, val val, next env);
+CREATE TYPE env_entry AS (id env, name var, val val, parent env);
 
 DROP SEQUENCE IF EXISTS env_keys;
 CREATE SEQUENCE env_keys START 1;
@@ -64,3 +64,11 @@ $$
   RETURNING id
 $$
 LANGUAGE SQL VOLATILE;
+
+
+-- import terms from JSON representatin in to table 'terms'
+INSERT INTO root_terms (
+  SELECT term_id,term
+  FROM input_terms_secd AS _(set_id,term_id,t), load_term(t) AS __(term)
+  WHERE set_id = :term_set
+);
