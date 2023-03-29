@@ -39,7 +39,7 @@
 6.2 De Bruijn:
 
 ((λx.λy.x) (λx.λy.x)) (λx.x) --> (λx.λy.x)
-((λ (λ 1)) (λ (λ 1))) (λ 0) --> (λ (λ 1 1))
+((λ (λ 1)) (λ (λ 1))) (λ 0) --> (λ (λ 1))
 
 {"app": {"fun": {"app": {"fun": {"lam": {"lam": {"i": 1}}}, "arg": {"lam": {"lam": {"i": 1}}}}}, "arg": {"lam": {"i": 0}}}}
 
@@ -58,7 +58,7 @@ De Bruijn:
 {"app": {"fun": {"lam": {"app": {"fun": {"i": 0}, "arg": {"i": 0}}}}, "arg": {"lam": {"app": {"fun": {"i": 0}, "arg": {"i": 0}}}}}}
 
 
-Because of laziness, the term (λx.(λy.x) omega (which has a HNF) terminates with Krivine, but doesn't with SECD
+Because of laziness, the term (λx.(λy.x) omega (which has a HNF) terminates with Krivine, but doesn't with SECD.
 
 Identifiers:
 {"app": {"fun": {"lam": {"var": "x", "body": {"lam": {"var": "y", "body": {"var": "x"}}}}}, "arg": {"app": {"fun": {"lam": {"var": "a", "body": {"app": {"fun": {"var": "a"}, "arg": {"var": "a"}}}}}, "arg": {"lam": {"var": "a", "body": {"app": {"fun": {"var": "a"}, "arg": {"var": "a"}}}}}}}}}
