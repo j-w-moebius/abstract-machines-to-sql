@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# before testing, run `\i import_terms.sql` in `psql` once
-
-# requires variable PSQL_PORT to be set to the port on which postgres is running
 testMachine=$1
 testSet=$2
 case $testMachine in 
